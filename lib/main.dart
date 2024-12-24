@@ -22,13 +22,28 @@ class SimplePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("My cart"),
+        title: Text(
+          "My cart",
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            letterSpacing: 1.2,
+            wordSpacing: 3,
+            decoration: TextDecoration.underline,
+            color: Colors.black,
+            fontFamily: 'Raleway',
+            backgroundColor: const Color.fromARGB(255, 245, 245, 245)
+            ),
+        ),
         centerTitle: true,
-        leading: IconButton(onPressed: (){}, icon: Icon(Icons.arrow_back_ios,size: 20,)),
-        actions: [
-          IconButton(onPressed: (){}, icon: Icon(Icons.more_horiz))],
+        leading: IconButton(
+            onPressed: () {},
+            icon: Icon(
+              Icons.arrow_back_ios,
+              size: 20,
+            )),
+        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.more_horiz))],
       ),
-      
     );
   }
 }
