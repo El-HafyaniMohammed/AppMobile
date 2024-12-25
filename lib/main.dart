@@ -29,20 +29,45 @@ class SimplePage extends StatelessWidget {
             fontSize: 18,
             letterSpacing: 1.2,
             wordSpacing: 3,
-            decoration: TextDecoration.underline,
             color: Colors.black,
             fontFamily: 'Raleway',
             backgroundColor: const Color.fromARGB(255, 245, 245, 245)
             ),
         ),
         centerTitle: true,
-        leading: IconButton(
-            onPressed: () {},
-            icon: Icon(
-              Icons.arrow_back_ios,
-              size: 20,
-            )),
-        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.more_horiz))],
+        leading: Container(
+          margin: EdgeInsets.all(10.0),
+          padding: EdgeInsets.fromLTRB(3,1,2,1),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            shape: BoxShape.circle ,
+          ),
+          width: 40,
+          height: 40,
+            child: IconButton(
+              onPressed: () {},
+              icon: Icon(
+                Icons.arrow_back_ios,
+                size: 20,
+                color: Colors.black, // Contraste avec le fond
+              ),
+            ),
+          ),
+        actions: [
+          Container(
+            margin: EdgeInsets.all(10),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                shape: BoxShape.circle ,
+              ),
+            width: 40,
+            height: 40,
+            padding: EdgeInsets.fromLTRB(2,0,3,2),
+            child: IconButton(onPressed: () {}, icon: Icon(Icons.more_horiz, size: 20,))
+          )
+          ],
       ),
     );
   }
