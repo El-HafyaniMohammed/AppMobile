@@ -13,7 +13,9 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  
+
+  final PageController _pageController = PageController();
+
   final List<Widget> _screens = [
     const HomeScreen(),
     const FavoriteScreen(),
@@ -22,15 +24,32 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_selectedIndex != index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose(); // Libération des ressources
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(), // Désactive le swipe manuel
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF4CAF50),

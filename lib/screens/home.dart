@@ -35,8 +35,9 @@ class Product {
   final String imagePath;
   final bool isOnSale;
   final double? salePrice;
+  bool isFavorite;
 
-  const Product({
+  Product({
     required this.id,
     required this.name,
     required this.brand,
@@ -45,8 +46,10 @@ class Product {
     required this.imagePath,
     this.isOnSale = false,
     this.salePrice,
+    this.isFavorite = false,
   });
 }
+
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -412,7 +415,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
 }
 
 // Product Card Widget
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final Product product;
 
   const ProductCard({
@@ -420,6 +423,11 @@ class ProductCard extends StatelessWidget {
     required this.product,
   });
 
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -440,15 +448,15 @@ class ProductCard extends StatelessWidget {
                   ),
                   child: Center(
                     child: Hero(
-                      tag: 'product-${product.id}',
+                      tag: 'product-${widget.product.id}',
                       child: Image.asset(
-                        product.imagePath,
+                        widget.product.imagePath,
                         height: 120,
                       ),
                     ),
                   ),
                 ),
-                if (product.isOnSale)
+                if (widget.product.isOnSale)
                   Positioned(
                     top: 8,
                     left: 8,
@@ -470,20 +478,37 @@ class ProductCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    icon: Icon(
+                      widget.product.isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: widget.product.isFavorite ? Colors.red : Colors.grey,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        widget.product.isFavorite = !widget.product.isFavorite;
+                      });
+                    },
+                  ),
+                ),
               ],
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              product.name,
+              widget.product.name,
               style: AppStyles.productTitle,
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              product.brand,
+              widget.product.brand,
               style: const TextStyle(
                 color: Colors.grey,
                 fontSize: 12,
@@ -498,15 +523,15 @@ class ProductCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (product.isOnSale) ...[
+                    if (widget.product.isOnSale) ...[
                       Text(
-                        '${product.salePrice?.toStringAsFixed(2)} Dh',
+                        '${widget.product.salePrice?.toStringAsFixed(2)} Dh',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        '${product.price.toStringAsFixed(2)} Dh',
+                        '${widget.product.price.toStringAsFixed(2)} Dh',
                         style: const TextStyle(
                           fontSize: 12,
                           decoration: TextDecoration.lineThrough,
@@ -515,7 +540,7 @@ class ProductCard extends StatelessWidget {
                       ),
                     ] else
                       Text(
-                        '${product.price.toStringAsFixed(2)} Dh',
+                        '${widget.product.price.toStringAsFixed(2)} Dh',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                         ),
