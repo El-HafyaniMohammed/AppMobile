@@ -48,13 +48,8 @@ class Product {
   });
 }
 
-// Main App
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +190,6 @@ class _DiscoverPageState extends State<DiscoverPage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -262,81 +256,84 @@ class _DiscoverPageState extends State<DiscoverPage> {
     );
   }
 
- Widget _buildSalesBanner() {
-  return Container(
-    width: double.infinity,
-    height: 180, // Increased height to provide more space for the content
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Stack(
-      children: [
-        Positioned(
-          right: -30, // Positioned slightly out of bounds to give a better visual effect
-          bottom: 0,
-          child: Image.asset(
-            'assets/img/product_6.png', // Ensure the image exists in the assets folder
-            height: 160, // Image size adjusted for better layout balance
-            fit: BoxFit.contain, // Ensure the image fits within the space properly
-          ),
+  Widget _buildSalesBanner() {
+    return Container(
+      width: double.infinity,
+      height: 180, // Increased height to provide more space for the content
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Flash Sale',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 26, // Slightly larger text size for better visibility
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Up to 50% off on\nselected items',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400, // Use lighter weight for better readability
-                ),
-              ),
-              const SizedBox(height: 16), // Increased space before the button
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8), // Rounded button
-                  ),
-                ),
-                child: const Text(
-                  'Shop Now',
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right:
+                -30, // Positioned slightly out of bounds to give a better visual effect
+            bottom: 0,
+            child: Image.asset(
+              'assets/img/product_6.png', // Ensure the image exists in the assets folder
+              height: 160, // Image size adjusted for better layout balance
+              fit: BoxFit
+                  .contain, // Ensure the image fits within the space properly
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Flash Sale',
                   style: TextStyle(
-                    fontSize: 16, // Adjusted font size for better balance
+                    color: Colors.white,
+                    fontSize:
+                        26, // Slightly larger text size for better visibility
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                const Text(
+                  'Up to 50% off on\nselected items',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight
+                        .w400, // Use lighter weight for better readability
+                  ),
+                ),
+                const SizedBox(height: 16), // Increased space before the button
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8), // Rounded button
+                    ),
+                  ),
+                  child: const Text(
+                    'Shop Now',
+                    style: TextStyle(
+                      fontSize: 16, // Adjusted font size for better balance
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
+        ],
+      ),
+    );
+  }
 
   Widget _buildCategoriesSection() {
     return Column(
@@ -410,32 +407,6 @@ class _DiscoverPageState extends State<DiscoverPage> {
         },
         childCount: products.length,
       ),
-    );
-  }
-
-  Widget _buildBottomNavBar() {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: Colors.grey,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.favorite_outline),
-          label: 'Favorites',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.shopping_cart_outlined),
-          label: 'Cart',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
-        ),
-      ],
     );
   }
 }
