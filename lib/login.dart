@@ -1,7 +1,7 @@
 // main.dart
 import 'package:flutter/material.dart';
 
-void main() => runApp( MyApp());
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -80,25 +80,36 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Center(
-                  child: Image.asset("assets/img/9game_logo.png",height: 150,),
+                  child: Image.asset("assets/img/9game_logo.png", height: 120),
                 ),
                 Center(
-                  child: const Text(
-                    'Welcome to 9Game Store',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: const TextStyle(fontSize: 20,color: Color.fromARGB(255, 0, 0, 0)),
+                      children: [
+                        const TextSpan(
+                            text: 'Welcome to '),
+                        TextSpan(
+                          text: '9Game',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF4CAF50)
+                          ),
+                        ),
+                        const TextSpan(text: ' Store '),
+                      ],
                     ),
                   ),
                 ),
                 Center(
-                  child: Text(
+                  child: const Text(
                     textAlign: TextAlign.center,
                     'Sign up or login below to manage your\nproject, task, and productivity',
                     style: TextStyle(color: Colors.grey, height: 1.5),
                   ),
                 ),
-                const SizedBox(height: 24),
                 Row(
                   children: [
                     Column(
@@ -134,7 +145,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 4),
                         Container(
                           width: 40,
                           height: 3,
@@ -150,14 +160,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   icon: 'assets/img/google_icon.png',
                   label: 'Login with Google',
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 10),
                 const Center(
                   child: Text(
                     'or continue with email',
                     style: TextStyle(color: Colors.grey),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 15),
                 if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
@@ -194,19 +204,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {},
-                    child:Text('Forgot Password?',
-                        style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).primaryColor,
-                                decoration: TextDecoration.underline,
-                              ),
-                        ),
+                    child: Text(
+                      'Forgot Password?',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColor,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 40,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
@@ -270,6 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -280,7 +291,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return SizedBox(
       width: double.infinity,
-      height: 56,
+      height: 40,
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: Image.asset(icon, height: 24),
@@ -346,6 +357,32 @@ class _LoginScreenState extends State<LoginScreen> {
           borderSide: const BorderSide(color: Colors.red),
         ),
       ),
+    );
+  }
+
+  Widget _buildBottomNavBar() {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: const Color(0xFF4CAF50),
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.favorite_outline),
+          label: 'Favorites',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.shopping_cart_outlined),
+          label: 'Cart',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profile',
+        ),
+      ],
     );
   }
 }
