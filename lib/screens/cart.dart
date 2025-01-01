@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:lottie/lottie.dart';
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
 
@@ -169,25 +169,30 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
               ),
           ],
         ),
-        body: cartItems.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.shopping_cart,
-                        size: 80, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Your cart is empty',
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              )
+       body: cartItems.isEmpty
+    ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              height: 150, // Taille de l'animation
+              child: Lottie.asset(
+                'assets/animation/empty_cart.json', // Chemin vers le fichier JSON
+                repeat: true,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Your cart is empty',
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      )
             : Column(children: [
                 Expanded(
                     child: ListView.builder(
@@ -404,7 +409,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
             ),
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.grey[50],
                 borderRadius: BorderRadius.circular(12),
