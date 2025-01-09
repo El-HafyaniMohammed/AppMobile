@@ -1,13 +1,16 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'user_page.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _AuthScreensState();
+  State<LoginScreen> createState() => _AuthScreensState();
 }
 
-class _AuthScreensState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _AuthScreensState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final Curve _animationCurve = Curves.easeInOut;
@@ -28,11 +31,13 @@ class _AuthScreensState extends State<ProfileScreen> with SingleTickerProviderSt
   }
 
   void switchToSignup() {
-    _tabController.animateTo(1, duration: _animationDuration, curve: _animationCurve);
+    _tabController.animateTo(1,
+        duration: _animationDuration, curve: _animationCurve);
   }
 
   void switchToLogin() {
-    _tabController.animateTo(0, duration: _animationDuration, curve: _animationCurve);
+    _tabController.animateTo(0,
+        duration: _animationDuration, curve: _animationCurve);
   }
 
   @override
@@ -128,8 +133,6 @@ class _AuthScreensState extends State<ProfileScreen> with SingleTickerProviderSt
       ],
     );
   }
-
-
 }
 
 class LoginContent extends StatefulWidget {
@@ -157,32 +160,82 @@ class _LoginContentState extends State<LoginContent> {
   }
 
   void _handleLogin() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+  // 1. Validate form first
+  if (!(_formKey.currentState?.validate() ?? false)) {
+    return;
+  }
 
-      try {
-        await Future.delayed(const Duration(seconds: 2)); // Simulate API call
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Home Screen')),
-            ),
-          ),
-        );
-      } catch (e) {
-        setState(() => _error = e.toString());
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
-      }
+  // 2. Update loading state
+  setState(() {
+    _isLoading = true;
+    _error = null;  // Reset any previous errors
+  });
+
+  try {
+    // 3. Attempt Firebase login
+    // ignore: unused_local_variable
+    final UserCredential userCredential = 
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    // 4. Handle successful login
+    if (mounted) {
+      // Navigate to home page or call success callback
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfilePage()),
+      );
+      
+      // Optional: Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Successfully logged in'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+
+  } on FirebaseAuthException catch (e) {
+    // 5. Handle specific Firebase Auth errors
+    String errorMessage;
+    switch (e.code) {
+      case 'user-not-found':
+        errorMessage = 'No user found with this email.';
+        break;
+      case 'wrong-password':
+        errorMessage = 'Wrong password provided.';
+        break;
+      case 'invalid-email':
+        errorMessage = 'Invalid email format.';
+        break;
+      case 'user-disabled':
+        errorMessage = 'This account has been disabled.';
+        break;
+      case 'too-many-requests':
+        errorMessage = 'Too many attempts. Please try again later.';
+        break;
+      default:
+        errorMessage = 'An error occurred during login. Please try again.';
+    }
+    
+    if (mounted) {
+      setState(() => _error = errorMessage);
+    }
+
+  } catch (e) {
+    // 6. Handle any other unexpected errors
+    if (mounted) {
+      setState(() => _error = 'An unexpected error occurred. Please try again.');
+    }
+  } finally {
+    // 7. Always reset loading state if widget is still mounted
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -264,7 +317,8 @@ class _LoginContentState extends State<LoginContent> {
                         width: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : const Text(
@@ -307,7 +361,8 @@ class _LoginContentState extends State<LoginContent> {
                       : Icons.visibility_outlined,
                   color: Colors.grey,
                 ),
-                onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                onPressed: () =>
+                    setState(() => _passwordVisible = !_passwordVisible),
               )
             : null,
         filled: true,
@@ -350,6 +405,7 @@ class _SignupContentState extends State<SignupContent> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _passwordVisible = false;
+  // ignore: unused_field
   bool _confirmPasswordVisible = false;
   String? _error;
 
@@ -447,7 +503,7 @@ class _SignupContentState extends State<SignupContent> {
                 }
                 return null;
               },
-              ),
+            ),
             const SizedBox(height: 12),
             _buildInputField(
               controller: _confirmPasswordController,
@@ -482,7 +538,8 @@ class _SignupContentState extends State<SignupContent> {
                         width: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor:
+                              AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : const Text(
@@ -525,7 +582,8 @@ class _SignupContentState extends State<SignupContent> {
                       : Icons.visibility_outlined,
                   color: Colors.grey,
                 ),
-                onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                onPressed: () =>
+                    setState(() => _passwordVisible = !_passwordVisible),
               )
             : null,
         filled: true,

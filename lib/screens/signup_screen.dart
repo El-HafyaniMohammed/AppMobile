@@ -1,5 +1,8 @@
-// signup_screen.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'user_page.dart';  // Assurez-vous que cela pointe vers votre page de profil
+// ignore: unused_import
+import 'main_screen.dart';  // Assurez-vous d'importer MainScreen pour la navigation
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -16,6 +19,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _passwordVisible = false;
+  // ignore: unused_field
   bool _confirmPasswordVisible = false;
   String? _error;
 
@@ -28,32 +32,51 @@ class _SignupScreenState extends State<SignupScreen> {
     super.dispose();
   }
 
-  void _handleSignup() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+  // Méthode de gestion d'inscription
+ void _handleSignup() async {
+  if (_formKey.currentState?.validate() ?? false) {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-      try {
-        await Future.delayed(const Duration(seconds: 2)); // Simulate API call
+    try {
+      // Créer un compte avec Firebase
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (_) =>
-                  const Scaffold(body: Center(child: Text('Home Screen')))),
-        );
-      } catch (e) {
-        setState(() => _error = e.toString());
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
+      // Vous pouvez ajouter des informations utilisateur supplémentaires ici
+      await userCredential.user?.updateDisplayName(_nameController.text.trim());
+
+      // Redirigez vers l'écran principal après l'inscription
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const ProfilePage(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      if (e.code == 'email-already-in-use') {
+        errorMessage = 'The account already exists for that email.';
+      } else if (e.code == 'weak-password') {
+        errorMessage = 'The password provided is too weak.';
+      } else {
+        errorMessage = e.message ?? 'An error occurred';
+      }
+      setState(() => _error = errorMessage);
+    } catch (e) {
+      setState(() => _error = 'An unexpected error occurred');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +89,7 @@ class _SignupScreenState extends State<SignupScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                // Logo et titre
                 Center(
                   child: Image.asset("assets/img/9game_logo.png", height: 120),
                 ),
@@ -96,6 +120,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     style: TextStyle(color: Colors.grey, height: 1.5),
                   ),
                 ),
+                // Boutons de navigation vers Login / Sign Up
                 Row(
                   children: [
                     Column(
@@ -142,20 +167,8 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ],
                 ),
+                // Formulaire d'inscription
                 const SizedBox(height: 12),
-                _buildSocialButton(
-                  onPressed: () {},
-                  icon: 'assets/img/google_icon.png',
-                  label: 'Sign up with Google',
-                ),
-                const SizedBox(height: 10),
-                const Center(
-                  child: Text(
-                    'or sign up with email',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                const SizedBox(height: 15),
                 if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
@@ -164,6 +177,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       style: const TextStyle(color: Colors.red),
                     ),
                   ),
+                // Champs de formulaire
                 _buildInputField(
                   controller: _nameController,
                   hint: 'Enter your full name',
@@ -253,7 +267,8 @@ class _SignupScreenState extends State<SignupScreen> {
                     text: TextSpan(
                       style: const TextStyle(color: Colors.grey),
                       children: [
-                        const TextSpan(text: 'By signing up, you agree to our '),
+                        const TextSpan(
+                            text: 'By signing up, you agree to our '),
                         TextSpan(
                           text: 'Terms of service',
                           style: TextStyle(
@@ -285,6 +300,8 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
+  // Constructeur de bouton social
+  // ignore: unused_element
   Widget _buildSocialButton({
     required VoidCallback onPressed,
     required String icon,
@@ -313,6 +330,7 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
+  // Champ de texte personnalisé
   Widget _buildInputField({
     required TextEditingController controller,
     required String hint,
@@ -361,6 +379,7 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
+  // Barre de navigation inférieure
   Widget _buildBottomNavBar() {
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,

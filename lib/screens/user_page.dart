@@ -1,8 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
-  
+
+   void _handleLogout(BuildContext context) async {
+    final shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmer la déconnexion'),
+          content: const Text('Voulez-vous vraiment vous déconnecter ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Déconnexion'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      try {
+        await FirebaseAuth.instance.signOut();
+        // ignore: use_build_context_synchronously
+        Navigator.of(context).pushReplacementNamed('/main');
+      } catch (e) {
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la déconnexion : ${e.toString()}'),
+          ),
+        );
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -15,7 +52,7 @@ class ProfilePage extends StatelessWidget {
                 _buildStats(),
                 _buildMenuSection(),
                 _buildPersonalInfoSection(),
-                _buildPreferencesSection(),
+                _buildPreferencesSection(context),
                 const SizedBox(height: 20),
               ],
             ),
@@ -154,6 +191,17 @@ class ProfilePage extends StatelessWidget {
           ],
         ),
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.logout),
+          onPressed: () async {
+            await FirebaseAuth.instance.signOut();
+            // Vous pouvez ajouter ici une logique pour rediriger l'utilisateur
+            // vers la page de connexion après la déconnexion, par exemple :
+            // Navigator.pushReplacementNamed(context, '/login');
+          },
+        ),
+      ],
     );
   }
 
@@ -320,7 +368,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildPreferencesSection() {
+  Widget _buildPreferencesSection(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
@@ -350,24 +398,28 @@ class ProfilePage extends StatelessWidget {
             icon: Icons.notifications,
             title: 'Notifications',
             isSwitch: true,
+            onTap: () => {}
           ),
           _buildMenuDivider(),
           _buildPreferenceItem(
             icon: Icons.language,
             title: 'Langue',
             value: 'Français',
+            onTap: () => {}
           ),
           _buildMenuDivider(),
           _buildPreferenceItem(
             icon: Icons.dark_mode,
             title: 'Thème sombre',
             isSwitch: true,
+            onTap: () => {}
           ),
           _buildMenuDivider(),
           _buildPreferenceItem(
             icon: Icons.logout,
             title: 'Déconnexion',
             color: Colors.red,
+            onTap: () => _handleLogout(context)
           ),
         ],
       ),
@@ -384,6 +436,7 @@ class ProfilePage extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
+          // ignore: deprecated_member_use
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
@@ -448,7 +501,7 @@ class ProfilePage extends StatelessWidget {
     required String title,
     String? value,
     bool isSwitch = false,
-    Color color = Colors.blue,
+    Color color = Colors.blue, required void Function() onTap,
   }) {
     return ListTile(
       leading: Icon(icon, color: color),
@@ -478,235 +531,4 @@ class ProfilePage extends StatelessWidget {
   Widget _buildMenuDivider() {
     return const Divider(height: 1, indent: 16, endIndent: 16);
   }
-}
-
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          expandedHeight: 200,
-          floating: false,
-          pinned: true,
-          flexibleSpace: FlexibleSpaceBar(
-            background: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.blue.shade400, Colors.blue.shade800],
-                ),
-              ),
-            ),
-            title: const Text('Mon Profil'),
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
-              onPressed: () {},
-            ),
-          ],
-        ),
-        SliverToBoxAdapter(
-          child: _buildProfileContent(),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildProfileContent() {
-  return Column(
-    children: [
-      _buildProfileHeader(),
-      _buildStats(),
-      _buildMenuItems(),
-    ],
-  );
-}
-
-Widget _buildProfileHeader() {
-  return Container(
-    transform: Matrix4.translationValues(0, -40, 0),
-    child: Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                spreadRadius: 2,
-                blurRadius: 8,
-              ),
-            ],
-          ),
-          child: const CircleAvatar(
-            radius: 50,
-            backgroundImage: NetworkImage(
-                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIvg6aihgIzUeCsIP06_RpEY75MaD7dQex_w&s'),
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Jean Dupont',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const Text(
-          'jean.dupont@email.com',
-          style: TextStyle(color: Colors.grey),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildStats() {
-  return Container(
-    padding: const EdgeInsets.symmetric(vertical: 20),
-    margin: const EdgeInsets.symmetric(horizontal: 20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.grey.withOpacity(0.1),
-          spreadRadius: 1,
-          blurRadius: 5,
-        ),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildStatItem('12', 'Commandes'),
-        _buildStatDivider(),
-        _buildStatItem('3', 'En cours'),
-        _buildStatDivider(),
-        _buildStatItem('5', 'Favoris'),
-      ],
-    ),
-  );
-}
-
-Widget _buildStatItem(String value, String label) {
-  return Column(
-    children: [
-      Text(
-        value,
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: Colors.blue,
-        ),
-      ),
-      const SizedBox(height: 4),
-      Text(
-        label,
-        style: const TextStyle(
-          color: Colors.grey,
-          fontSize: 12,
-        ),
-      ),
-    ],
-  );
-}
-
-Widget _buildStatDivider() {
-  return Container(
-    height: 30,
-    width: 1,
-    color: Colors.grey.withOpacity(0.3),
-  );
-}
-
-Widget _buildMenuItems() {
-  return Container(
-    margin: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(15),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.grey.withOpacity(0.1),
-          spreadRadius: 1,
-          blurRadius: 5,
-        ),
-      ],
-    ),
-    child: Column(
-      children: [
-        _buildMenuItem(
-          icon: Icons.shopping_bag,
-          title: 'Mes commandes',
-          color: Colors.blue,
-        ),
-        _buildMenuDivider(),
-        _buildMenuItem(
-          icon: Icons.location_on,
-          title: 'Adresses',
-          color: Colors.green,
-        ),
-        _buildMenuDivider(),
-        _buildMenuItem(
-          icon: Icons.credit_card,
-          title: 'Paiement',
-          color: Colors.orange,
-        ),
-        _buildMenuDivider(),
-        _buildMenuItem(
-          icon: Icons.settings,
-          title: 'Paramètres',
-          color: Colors.purple,
-        ),
-        _buildMenuDivider(),
-        _buildMenuItem(
-          icon: Icons.logout,
-          title: 'Déconnexion',
-          color: Colors.red,
-          isLast: true,
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildMenuItem({
-  required IconData icon,
-  required String title,
-  required Color color,
-  bool isLast = false,
-}) {
-  return ListTile(
-    leading: Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Icon(icon, color: color),
-    ),
-    title: Text(
-      title,
-      style: const TextStyle(
-        fontWeight: FontWeight.w500,
-        fontSize: 16,
-      ),
-    ),
-    trailing: isLast
-        ? null
-        : const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-    onTap: () {},
-  );
-}
-
-Widget _buildMenuDivider() {
-  return const Divider(height: 1, indent: 70);
 }
