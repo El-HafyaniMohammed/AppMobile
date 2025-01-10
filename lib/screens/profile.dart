@@ -1,7 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+// ignore: unused_import
 import 'user_page.dart';
-
+import 'main_screen.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -14,7 +15,7 @@ class _AuthScreensState extends State<LoginScreen>
   late final TabController _tabController;
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final Curve _animationCurve = Curves.easeInOut;
-
+  
   @override
   void initState() {
     super.initState();
@@ -164,7 +165,6 @@ class _LoginContentState extends State<LoginContent> {
   if (!(_formKey.currentState?.validate() ?? false)) {
     return;
   }
-
   // 2. Update loading state
   setState(() {
     _isLoading = true;
@@ -182,13 +182,13 @@ class _LoginContentState extends State<LoginContent> {
 
     // 4. Handle successful login
     if (mounted) {
-      // Navigate to home page or call success callback
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const ProfilePage()),
+        MaterialPageRoute(
+          builder: (_) =>  const MainScreen(),
+        ),
       );
-      
-      // Optional: Show success message
+      // Message de succès
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Successfully logged in'),
@@ -405,7 +405,7 @@ class _SignupContentState extends State<SignupContent> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _passwordVisible = false;
-  // ignore: unused_field
+  // ignore: unused_field, prefer_final_fields
   bool _confirmPasswordVisible = false;
   String? _error;
 
@@ -417,35 +417,82 @@ class _SignupContentState extends State<SignupContent> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
-
+  
   void _handleSignup() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
-
-      try {
-        await Future.delayed(const Duration(seconds: 2)); // Simulate API call
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const Scaffold(
-              body: Center(child: Text('Home Screen')),
-            ),
-          ),
-        );
-      } catch (e) {
-        setState(() => _error = e.toString());
-      } finally {
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
-      }
-    }
+  // Vérifie si le formulaire est valide
+  if (!(_formKey.currentState?.validate() ?? false)) {
+    return;
   }
 
+  // Activation de l'état de chargement
+  setState(() {
+    _isLoading = true;
+    _error = null;
+  });
+
+  try {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final displayName = _nameController.text.trim();
+
+    // Création du compte utilisateur avec Firebase Authentication
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
+
+    // Mise à jour du profil utilisateur avec le nom affiché
+    await userCredential.user?.updateDisplayName(displayName);
+
+    // Redirige l'utilisateur vers la page de profil
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MainScreen(),
+        ),
+      );
+      
+      // Message de succès
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+
+  } on FirebaseAuthException catch (e) {
+    // Gestion des erreurs spécifiques à Firebase
+    String errorMessage;
+    switch (e.code) {
+      case 'email-already-in-use':
+        errorMessage = 'An account already exists with this email.';
+        break;
+      case 'weak-password':
+        errorMessage = 'The password is too weak.';
+        break;
+      case 'invalid-email':
+        errorMessage = 'The email address is invalid.';
+        break;
+      default:
+        errorMessage = e.message ?? 'An unknown error occurred.';
+    }
+    
+    if (mounted) {
+      setState(() => _error = errorMessage);
+    }
+    
+  } catch (e) {
+    // Gestion des erreurs imprévues
+    if (mounted) {
+      setState(() => _error = 'An unexpected error occurred. Please try again.');
+    }
+  } finally {
+    // Désactivation de l'état de chargement
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+}
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -454,16 +501,6 @@ class _SignupContentState extends State<SignupContent> {
         key: _formKey,
         child: Column(
           children: [
-            _buildSocialButton(
-              onPressed: () {},
-              icon: 'assets/img/google_icon.png',
-              label: 'Sign up with Google',
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'or sign up with email',
-              style: TextStyle(color: Colors.grey),
-            ),
             const SizedBox(height: 15),
             if (_error != null)
               Padding(
@@ -639,6 +676,7 @@ Widget _buildSocialButton({
 }
 
 Widget _buildTermsText() {
+  
   return Builder(
     builder: (context) => RichText(
       textAlign: TextAlign.center,
@@ -668,3 +706,4 @@ Widget _buildTermsText() {
     ),
   );
 }
+

@@ -4,7 +4,7 @@ import 'home.dart';
 import 'cart.dart';
 import 'favorite.dart';
 import 'profile.dart';
-import 'user_page.dart';
+import 'user_page.dart';// Remplacez par la classe correcte.
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,54 +18,15 @@ class _MainScreenState extends State<MainScreen> {
   final PageController _pageController = PageController();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  bool get _isUserLoggedIn => _auth.currentUser != null;
-
-  Widget _getProfileScreen() {
-  return StreamBuilder<User?>(
-    stream: _auth.authStateChanges(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      if (snapshot.hasData) {
-        return const ProfilePage();
-      }
-      return const LoginScreen();
-    },
-  );
-}
-
-
-  List<Widget> get _screens => [
-        const HomeScreen(),
-        const FavoriteScreen(),
-        const CartScreen(),
-        _getProfileScreen(),
-      ];
-
-  @override
-  void initState() {
-  super.initState();
-  _auth.authStateChanges().listen((User? user) {
-    if (mounted) {
-      setState(() {
-        if (user == null) {
-          // Si l'utilisateur est déconnecté, aller à la page de login
-          _selectedIndex = 3; // Index de la page profil/login
-          _pageController.jumpToPage(3);
-        }
-      });
-    }
-  });
-}
-
   void _onItemTapped(int index) {
-  if (index == 3 && !_isUserLoggedIn) {
-    // Rediriger vers l'écran de connexion
-    _pageController.jumpToPage(3);
-    return;
-  }
-  if (_selectedIndex != index) {
+    if (index == 3 && _auth.currentUser == null) {
+      setState(() {
+        _selectedIndex = index;
+      });
+      _pageController.jumpToPage(index); // Aller directement à la page de connexion
+      return;
+    }
+
     setState(() {
       _selectedIndex = index;
     });
@@ -75,8 +36,6 @@ class _MainScreenState extends State<MainScreen> {
       curve: Curves.easeInOut,
     );
   }
-}
-
 
   @override
   void dispose() {
@@ -90,7 +49,14 @@ class _MainScreenState extends State<MainScreen> {
       body: PageView(
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(),
-        children: _screens,
+        children: [
+          const HomeScreen(),
+          const FavoriteScreen(),
+          const CartScreen(),
+          _auth.currentUser != null
+              ? const ProfilePage()
+              : const LoginScreen(), // Affiche la page de connexion si l'utilisateur n'est pas connecté
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,

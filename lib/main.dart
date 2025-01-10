@@ -1,7 +1,12 @@
+// ignore: unused_import
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:project/screens/user_page.dart';
 import 'screens/main_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import './screens/profile.dart';
+import './screens/home.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -30,12 +35,12 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
       ),
       home: const MainScreen(),
-      initialRoute: '/main',
       routes: {
         '/main': (context) => const MainScreen(),
         '/login': (context) => const LoginScreen(),
+        '/Home': (context) => const HomeScreen(),
+        '/profile': (context) => const ProfilePage(),
       },
     );
   }
-
 }

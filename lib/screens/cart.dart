@@ -536,6 +536,7 @@ class _QuantityButton extends StatelessWidget {
   const _QuantityButton({
     required this.icon,
     required this.onPressed,
+    // ignore: unused_element
     this.enabled = true,
   });
 

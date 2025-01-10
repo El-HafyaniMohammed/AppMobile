@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
-   void _handleLogout(BuildContext context) async {
+  void _handleLogout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -29,23 +29,34 @@ class ProfilePage extends StatelessWidget {
       try {
         await FirebaseAuth.instance.signOut();
         // ignore: use_build_context_synchronously
-        Navigator.of(context).pushReplacementNamed('/main');
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/main', 
+          (Route<dynamic> route) => false
+        );
       } catch (e) {
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur lors de la déconnexion : ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: 'OK',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
           ),
         );
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          _buildAppBar(),
+          _buildAppBar(context),
           SliverToBoxAdapter(
             child: Column(
               children: [
@@ -62,12 +73,18 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(BuildContext context) {
     return SliverAppBar(
       expandedHeight: 280,
       floating: false,
       pinned: true,
       backgroundColor: Colors.transparent,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.logout),
+          onPressed: () => _handleLogout(context),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
           children: [
@@ -120,8 +137,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                         child: const CircleAvatar(
                           radius: 50,
-                          backgroundImage:
-                              NetworkImage('https://via.placeholder.com/100'),
+                          backgroundImage: NetworkImage('https://via.placeholder.com/100'),
                         ),
                       ),
                       Container(
@@ -191,17 +207,6 @@ class ProfilePage extends StatelessWidget {
           ],
         ),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.logout),
-          onPressed: () async {
-            await FirebaseAuth.instance.signOut();
-            // Vous pouvez ajouter ici une logique pour rediriger l'utilisateur
-            // vers la page de connexion après la déconnexion, par exemple :
-            // Navigator.pushReplacementNamed(context, '/login');
-          },
-        ),
-      ],
     );
   }
 
@@ -395,32 +400,28 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
           _buildPreferenceItem(
-            icon: Icons.notifications,
-            title: 'Notifications',
-            isSwitch: true,
-            onTap: () => {}
-          ),
+              icon: Icons.notifications,
+              title: 'Notifications',
+              isSwitch: true,
+              onTap: () => {}),
           _buildMenuDivider(),
           _buildPreferenceItem(
-            icon: Icons.language,
-            title: 'Langue',
-            value: 'Français',
-            onTap: () => {}
-          ),
+              icon: Icons.language,
+              title: 'Langue',
+              value: 'Français',
+              onTap: () => {}),
           _buildMenuDivider(),
           _buildPreferenceItem(
-            icon: Icons.dark_mode,
-            title: 'Thème sombre',
-            isSwitch: true,
-            onTap: () => {}
-          ),
+              icon: Icons.dark_mode,
+              title: 'Thème sombre',
+              isSwitch: true,
+              onTap: () => {}),
           _buildMenuDivider(),
           _buildPreferenceItem(
-            icon: Icons.logout,
-            title: 'Déconnexion',
-            color: Colors.red,
-            onTap: () => _handleLogout(context)
-          ),
+              icon: Icons.logout,
+              title: 'Déconnexion',
+              color: Colors.red,
+              onTap: () => _handleLogout(context)),
         ],
       ),
     );
@@ -501,7 +502,8 @@ class ProfilePage extends StatelessWidget {
     required String title,
     String? value,
     bool isSwitch = false,
-    Color color = Colors.blue, required void Function() onTap,
+    Color color = Colors.blue,
+    required void Function() onTap,
   }) {
     return ListTile(
       leading: Icon(icon, color: color),

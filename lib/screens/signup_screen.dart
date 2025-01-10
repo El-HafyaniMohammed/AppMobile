@@ -19,7 +19,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _passwordVisible = false;
-  // ignore: unused_field
+  // ignore: unused_field, prefer_final_fields
   bool _confirmPasswordVisible = false;
   String? _error;
 
@@ -34,49 +34,81 @@ class _SignupScreenState extends State<SignupScreen> {
 
   // Méthode de gestion d'inscription
  void _handleSignup() async {
-  if (_formKey.currentState?.validate() ?? false) {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  // Vérifie si le formulaire est valide
+  if (!(_formKey.currentState?.validate() ?? false)) {
+    return;
+  }
 
-    try {
-      // Créer un compte avec Firebase
-      UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+  // Activation de l'état de chargement
+  setState(() {
+    _isLoading = true;
+    _error = null;
+  });
 
-      // Vous pouvez ajouter des informations utilisateur supplémentaires ici
-      await userCredential.user?.updateDisplayName(_nameController.text.trim());
+  try {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final displayName = _nameController.text.trim();
 
-      // Redirigez vers l'écran principal après l'inscription
+    // Création du compte utilisateur avec Firebase Authentication
+    UserCredential userCredential = await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(email: email, password: password);
+
+    // Mise à jour du profil utilisateur avec le nom affiché
+    await userCredential.user?.updateDisplayName(displayName);
+
+    // Redirige l'utilisateur vers la page de profil
+    if (mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => const ProfilePage(),
         ),
       );
-    } on FirebaseAuthException catch (e) {
-      String errorMessage;
-      if (e.code == 'email-already-in-use') {
-        errorMessage = 'The account already exists for that email.';
-      } else if (e.code == 'weak-password') {
-        errorMessage = 'The password provided is too weak.';
-      } else {
-        errorMessage = e.message ?? 'An error occurred';
-      }
+      
+      // Message de succès
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+
+  } on FirebaseAuthException catch (e) {
+    // Gestion des erreurs spécifiques à Firebase
+    String errorMessage;
+    switch (e.code) {
+      case 'email-already-in-use':
+        errorMessage = 'An account already exists with this email.';
+        break;
+      case 'weak-password':
+        errorMessage = 'The password is too weak.';
+        break;
+      case 'invalid-email':
+        errorMessage = 'The email address is invalid.';
+        break;
+      default:
+        errorMessage = e.message ?? 'An unknown error occurred.';
+    }
+    
+    if (mounted) {
       setState(() => _error = errorMessage);
-    } catch (e) {
-      setState(() => _error = 'An unexpected error occurred');
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    }
+    
+  } catch (e) {
+    // Gestion des erreurs imprévues
+    if (mounted) {
+      setState(() => _error = 'An unexpected error occurred. Please try again.');
+    }
+  } finally {
+    // Désactivation de l'état de chargement
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 }
+
 
   @override
   Widget build(BuildContext context) {
