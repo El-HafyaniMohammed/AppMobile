@@ -1,13 +1,195 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'user_model.dart';
-class ProfilePage extends StatelessWidget {
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'phone_verification_dialog.dart';
+class ProfilePage extends StatefulWidget {
   final UserModel user;
+  
   const ProfilePage({
     Key? key,
     required this.user,
   }) : super(key: key);
 
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+class _ProfilePageState extends State<ProfilePage>{
+  late final UserModel user = widget.user;
+  // ignore: unused_field
+  late TextEditingController _nameController;
+  // ignore: unused_field
+  late TextEditingController _phoneController;
+  // ignore: unused_field, prefer_final_fields
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      // Récupérer les données depuis Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data();
+        setState(() {
+          _nameController = TextEditingController(
+            text: userData?['displayName'] ?? _formatName(widget.user.email.split('@').first)
+          );
+          // Utiliser le numéro de téléphone de Firestore en priorité, puis celui de Firebase Auth
+          _phoneController = TextEditingController(
+            text: userData?['phoneNumber'] ?? currentUser.phoneNumber ?? ''
+          );
+        });
+      } else {
+        _nameController = TextEditingController(text: _formatName(widget.user.email.split('@').first));
+        _phoneController = TextEditingController(text: currentUser.phoneNumber ?? '');
+      }
+    }
+  }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+  String formatMoroccanPhoneNumber(String phone) {
+  // Supprimer tous les espaces et caractères spéciaux
+  phone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
+  
+  // Si le numéro commence par +212, c'est déjà au bon format
+  if (phone.startsWith('+212')) {
+    return phone;
+  }
+  
+  // Si le numéro commence par 212
+  if (phone.startsWith('212')) {
+    return '+$phone';
+  }
+  
+  // Si le numéro commence par 0
+  if (phone.startsWith('0')) {
+    return '+212${phone.substring(1)}';
+  }
+  
+  // Si le numéro ne commence ni par 0 ni par 212
+  // On suppose que c'est un numéro sans préfixe
+  if (phone.length >= 9) {
+    return '+212$phone';
+  }
+  
+  // Si le format ne correspond à aucun cas
+  throw Exception('Format de numéro invalide');
+}
+   Future<void> _handleEditProfile() async {
+  if (_isEditing) {
+    // ... (validation du nom inchangée)
+
+    String phoneNumber = _phoneController.text.trim();
+    if (phoneNumber.isNotEmpty) {
+      // Formatage du numéro de téléphone
+      String phoneNumber = _phoneController.text.trim();
+    if (phoneNumber.isNotEmpty) {
+      try {
+        // Formater le numéro marocain
+        phoneNumber = formatMoroccanPhoneNumber(phoneNumber);
+        
+        // Vérifier si le format est correct pour un numéro marocain
+        if (!RegExp(r'^\+212[5-7][0-9]{8}$').hasMatch(phoneNumber)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Format de numéro marocain invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // Le reste du code reste identique...
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Format de numéro invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
+      
+      // Vérifier si le numéro a changé
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null && phoneNumber != currentUser.phoneNumber) {
+        // Afficher le dialogue de vérification
+        // ignore: use_build_context_synchronously
+        final verified = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => PhoneVerificationDialog(phoneNumber: phoneNumber),
+        );
+
+        if (verified != true) {
+          return; // L'utilisateur a annulé ou la vérification a échoué
+        }
+      }
+    }
+
+    // Continuer avec la mise à jour des autres informations...
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        // Mise à jour du nom...
+        List<String> nameParts = _nameController.text.trim().split(' ');
+        String firstName = nameParts.first;
+        String lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUser.uid)
+            .set({
+          'displayName': _nameController.text.trim(),
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': currentUser.email,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        await currentUser.updateDisplayName(_nameController.text.trim());
+
+        setState(() {
+          _isEditing = false;
+        });
+
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profil mis à jour avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la mise à jour : ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } else {
+    setState(() {
+      _isEditing = true;
+    });
+  }
+}
   Future<void> _handleLogout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -289,7 +471,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    user.uid,
+                    _formatName(user.email.split('@').first),
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -493,32 +675,45 @@ class ProfilePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Informations personnelles',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Informations personnelles',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(_isEditing ? Icons.save : Icons.edit),
+                  onPressed: _handleEditProfile,
+                  color: Colors.green,
+                ),
+              ],
             ),
           ),
-          _buildInfoItem(
+          _buildEditableInfoItem(
             title: 'Nom complet',
-            value: _formatName(user.email.split('@').first),
+            controller: _nameController,
             icon: Icons.person,
+            enabled: _isEditing,
           ),
           _buildMenuDivider(),
           _buildInfoItem(
             title: 'Email',
-            value: user.email,
+            value: widget.user.email,
             icon: Icons.email,
           ),
           _buildMenuDivider(),
-          _buildInfoItem(
+          _buildEditableInfoItem(
             title: 'Téléphone',
-            value: '+33 6 12 34 56 78',
+            controller: _phoneController,
             icon: Icons.phone,
+            enabled: _isEditing,
+            keyboardType: TextInputType.phone,
           ),
         ],
       ),
@@ -622,6 +817,52 @@ class ProfilePage extends StatelessWidget {
       ),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: () {},
+    );
+  }
+
+   Widget _buildEditableInfoItem({
+    required String title,
+    required TextEditingController controller,
+    required IconData icon,
+    required bool enabled,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.green, size: 20),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+                TextField(
+                  controller: controller,
+                  enabled: enabled,
+                  keyboardType: keyboardType,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
