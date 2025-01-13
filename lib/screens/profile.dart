@@ -1,5 +1,9 @@
+// ignore_for_file: unused_field
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'user_model.dart';
 // ignore: unused_import
 import 'user_page.dart';
 import 'main_screen.dart';
@@ -153,6 +157,89 @@ class _LoginContentState extends State<LoginContent> {
   bool _passwordVisible = false;
   String? _error;
 
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  // Ajoutez cette méthode pour gérer la connexion Google
+  // ignore: unused_element
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      // Démarrer le processus de connexion Google
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        // L'utilisateur a annulé la connexion
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // Obtenir les détails d'authentification
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Créer les credentials Firebase
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      // Connecter avec Firebase
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      // ignore: unused_local_variable
+      final user = UserModel.fromFirebaseUser(FirebaseAuth.instance.currentUser!);
+      if (mounted) {
+        // Naviguer vers l'écran principal
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => MainScreen(user: user)),
+        );
+        
+        // Afficher un message de succès
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Successfully logged in with Google'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      String errorMessage;
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'account-exists-with-different-credential':
+            errorMessage = 'An account already exists with this email.';
+            break;
+          case 'invalid-credential':
+            errorMessage = 'Invalid credentials.';
+            break;
+          case 'operation-not-allowed':
+            errorMessage = 'Google sign-in is not enabled.';
+            break;
+          case 'user-disabled':
+            errorMessage = 'This account has been disabled.';
+            break;
+          case 'user-not-found':
+            errorMessage = 'No user found for this email.';
+            break;
+          default:
+            errorMessage = 'An error occurred during Google sign-in.';
+        }
+      } else {
+        errorMessage = 'An unexpected error occurred. Please try again.';
+      }
+      
+      if (mounted) {
+        setState(() => _error = errorMessage);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -179,13 +266,15 @@ class _LoginContentState extends State<LoginContent> {
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
     );
-
+    final user = UserModel.fromFirebaseUser(userCredential.user!);
+    await user.saveToFirestore(); // Sauvegarder dans Firestore
+    await user.updateLastLogin(); // Mettre à jour la dernière connexion
     // 4. Handle successful login
     if (mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) =>  const MainScreen(),
+          builder: (_) => MainScreen(user: user),
         ),
       );
       // Message de succès
@@ -246,7 +335,11 @@ class _LoginContentState extends State<LoginContent> {
         child: Column(
           children: [
             _buildSocialButton(
-              onPressed: () {},
+              onPressed: _isLoading 
+              ? null 
+              : () async {
+                  await _handleGoogleSignIn();
+                },
               icon: 'assets/img/google_icon.png',
               label: 'Login with Google',
             ),
@@ -405,9 +498,9 @@ class _SignupContentState extends State<SignupContent> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _passwordVisible = false;
-  // ignore: unused_field, prefer_final_fields
-  bool _confirmPasswordVisible = false;
+  final bool _confirmPasswordVisible = false;
   String? _error;
+  Timer? _timer;
 
   @override
   void dispose() {
@@ -415,84 +508,169 @@ class _SignupContentState extends State<SignupContent> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _timer?.cancel();
     super.dispose();
   }
-  
-  void _handleSignup() async {
-  // Vérifie si le formulaire est valide
-  if (!(_formKey.currentState?.validate() ?? false)) {
-    return;
-  }
 
-  // Activation de l'état de chargement
-  setState(() {
-    _isLoading = true;
-    _error = null;
-  });
-
-  try {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-    final displayName = _nameController.text.trim();
-
-    // Création du compte utilisateur avec Firebase Authentication
-    UserCredential userCredential = await FirebaseAuth.instance
-        .createUserWithEmailAndPassword(email: email, password: password);
-
-    // Mise à jour du profil utilisateur avec le nom affiché
-    await userCredential.user?.updateDisplayName(displayName);
-
-    // Redirige l'utilisateur vers la page de profil
+  Future<void> _sendVerificationEmail(User user) async {
+    await user.sendEmailVerification();
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const MainScreen(),
-        ),
-      );
-      
-      // Message de succès
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Account created successfully'),
-          backgroundColor: Colors.green,
+          content: Text('Verification email has been sent. Please check your inbox.'),
+          backgroundColor: Colors.blue,
         ),
       );
     }
+  }
 
-  } on FirebaseAuthException catch (e) {
-    // Gestion des erreurs spécifiques à Firebase
-    String errorMessage;
-    switch (e.code) {
-      case 'email-already-in-use':
-        errorMessage = 'An account already exists with this email.';
-        break;
-      case 'weak-password':
-        errorMessage = 'The password is too weak.';
-        break;
-      case 'invalid-email':
-        errorMessage = 'The email address is invalid.';
-        break;
-      default:
-        errorMessage = e.message ?? 'An unknown error occurred.';
-    }
+  void _startEmailVerificationCheck(User user) {
+    // Annuler le timer existant s'il y en a un
+    _timer?.cancel();
     
-    if (mounted) {
-      setState(() => _error = errorMessage);
+    // Créer un nouveau timer qui vérifie toutes les 3 secondes
+    _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
+      // Recharger l'utilisateur pour obtenir le dernier état
+      await user.reload();
+      
+      // Obtenir l'utilisateur mis à jour
+      final updatedUser = FirebaseAuth.instance.currentUser;
+      
+      if (updatedUser?.emailVerified ?? false) {
+        // Annuler le timer
+        timer.cancel();
+        
+        if (mounted) {
+          // Fermer la boîte de dialogue
+          final user = UserModel.fromFirebaseUser(updatedUser!);
+          Navigator.of(context).pop();
+          
+          // Rediriger vers la page principale
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MainScreen(user: user),
+            ),
+          );
+          
+          // Afficher le message de succès
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account verified successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      }
+    });
+  }
+
+  void _handleSignup() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
     }
-    
-  } catch (e) {
-    // Gestion des erreurs imprévues
-    if (mounted) {
-      setState(() => _error = 'An unexpected error occurred. Please try again.');
-    }
-  } finally {
-    // Désactivation de l'état de chargement
-    if (mounted) {
-      setState(() => _isLoading = false);
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+      final displayName = _nameController.text.trim();
+
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      await userCredential.user?.updateDisplayName(displayName);
+
+      if (userCredential.user != null) {
+        await _sendVerificationEmail(userCredential.user!);
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return WillPopScope(
+                onWillPop: () async => false, // Empêche de fermer avec le bouton retour
+                child: AlertDialog(
+                  title: const Text('Email Verification Required'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Please check your email and click the verification link. '
+                        'The app will automatically detect when you verify your email.',
+                      ),
+                      const SizedBox(height: 16),
+                      const CircularProgressIndicator(),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        if (userCredential.user != null) {
+                          _sendVerificationEmail(userCredential.user!);
+                        }
+                      },
+                      child: const Text('Resend Email'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        // Se déconnecter et retourner à l'écran de connexion
+                        await FirebaseAuth.instance.signOut();
+                        if (mounted) {
+                          // ignore: use_build_context_synchronously
+                          Navigator.of(context).pop(); // Fermer la boîte de dialogue
+                          // ignore: use_build_context_synchronously
+                          Navigator.of(context).pop(); // Retourner à l'écran précédent
+                        }
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+
+          // Démarrer la vérification automatique
+          _startEmailVerificationCheck(userCredential.user!);
+        }
+      }
+
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      switch (e.code) {
+        case 'email-already-in-use':
+          errorMessage = 'An account already exists with this email.';
+          break;
+        case 'weak-password':
+          errorMessage = 'The password is too weak.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'The email address is invalid.';
+          break;
+        default:
+          errorMessage = e.message ?? 'An unknown error occurred.';
+      }
+      
+      if (mounted) {
+        setState(() => _error = errorMessage);
+      }
+      
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = 'An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
-}
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -648,7 +826,7 @@ class _SignupContentState extends State<SignupContent> {
 
 // Shared widgets for both Login and Signup
 Widget _buildSocialButton({
-  required VoidCallback onPressed,
+  required void Function()? onPressed,
   required String icon,
   required String label,
 }) {
@@ -656,7 +834,7 @@ Widget _buildSocialButton({
     width: double.infinity,
     height: 40,
     child: OutlinedButton.icon(
-      onPressed: onPressed,
+      onPressed:onPressed,
       icon: Image.asset(icon, height: 24),
       label: Text(
         label,

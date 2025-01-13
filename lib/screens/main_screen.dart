@@ -5,9 +5,10 @@ import 'cart.dart';
 import 'favorite.dart';
 import 'profile.dart';
 import 'user_page.dart';// Remplacez par la classe correcte.
-
+import 'user_model.dart';
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final UserModel user;
+  const MainScreen({super.key, required this.user});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -54,7 +55,7 @@ class _MainScreenState extends State<MainScreen> {
           const FavoriteScreen(),
           const CartScreen(),
           _auth.currentUser != null
-              ? const ProfilePage()
+              ? ProfilePage(user: widget.user)
               : const LoginScreen(), // Affiche la page de connexion si l'utilisateur n'est pas connecté
         ],
       ),

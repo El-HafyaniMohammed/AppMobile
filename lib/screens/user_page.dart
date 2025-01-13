@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'user_model.dart';
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final UserModel user;
+  const ProfilePage({
+    Key? key,
+    required this.user,
+  }) : super(key: key);
 
-  void _handleLogout(BuildContext context) async {
+  Future<void> _handleLogout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -18,6 +22,9 @@ class ProfilePage extends StatelessWidget {
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
               child: const Text('Déconnexion'),
             ),
           ],
@@ -30,7 +37,7 @@ class ProfilePage extends StatelessWidget {
         await FirebaseAuth.instance.signOut();
         // ignore: use_build_context_synchronously
         Navigator.of(context).pushNamedAndRemoveUntil(
-          '/main', 
+          '/main',  // Changé de '/main' à '/login'
           (Route<dynamic> route) => false
         );
       } catch (e) {
@@ -39,18 +46,140 @@ class ProfilePage extends StatelessWidget {
           SnackBar(
             content: Text('Erreur lors de la déconnexion : ${e.toString()}'),
             backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-            action: SnackBarAction(
-              label: 'OK',
-              textColor: Colors.white,
-              onPressed: () {},
-            ),
           ),
         );
       }
     }
   }
+  
+  Future<void> _handleDeleteAccount(BuildContext context) async {
+    // Première confirmation
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Supprimer le compte'),
+          content: const Text(
+            'Êtes-vous sûr de vouloir supprimer votre compte ? '
+            'Cette action est irréversible et toutes vos données seront perdues.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('Supprimer'),
+            ),
+          ],
+        );
+      },
+    );
 
+    if (shouldDelete == true) {
+      // Seconde confirmation avec mot de passe
+      final passwordController = TextEditingController();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Confirmer la suppression'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Pour des raisons de sécurité, veuillez entrer votre mot de passe '
+                  'pour confirmer la suppression du compte.',
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Mot de passe',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Annuler'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red,
+                ),
+                child: const Text('Confirmer la suppression'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (confirmed == true) {
+        try {
+          // Récupérer l'utilisateur actuel
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            // Réauthentifier l'utilisateur
+            final email = user.email;
+            if (email != null) {
+              final credential = EmailAuthProvider.credential(
+                email: email,
+                password: passwordController.text,
+              );
+              
+              await user.reauthenticateWithCredential(credential);
+              // Supprimer le compte
+              await user.delete();
+              
+              // ignore: use_build_context_synchronously
+              Navigator.of(context).pushNamedAndRemoveUntil(
+                '/main',
+                (Route<dynamic> route) => false,
+              );
+              
+              // ignore: use_build_context_synchronously
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Votre compte a été supprimé avec succès.'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          String errorMessage = 'Une erreur est survenue.';
+          if (e is FirebaseAuthException) {
+            switch (e.code) {
+              case 'wrong-password':
+                errorMessage = 'Mot de passe incorrect.';
+                break;
+              case 'too-many-requests':
+                errorMessage = 'Trop de tentatives. Veuillez réessayer plus tard.';
+                break;
+              default:
+                errorMessage = e.message ?? 'Une erreur est survenue.';
+            }
+          }
+          // ignore: use_build_context_synchronously
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,7 +201,7 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-
+  
   Widget _buildAppBar(BuildContext context) {
     return SliverAppBar(
       expandedHeight: 280,
@@ -94,9 +223,9 @@ class ProfilePage extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.blue.shade800,
-                    Colors.blue.shade500,
-                    Colors.blue.shade300,
+                  Colors.green.shade800,
+                  Colors.green.shade500,
+                  Colors.green.shade300,
                   ],
                 ),
               ),
@@ -143,20 +272,24 @@ class ProfilePage extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: const BoxDecoration(
-                          color: Colors.blue,
+                          color: Colors.green,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: IconButton(
+                        icon: const Icon(
                           Icons.camera_alt,
                           color: Colors.white,
-                          size: 20,
+                          size: 30,
                         ),
+                        onPressed: (){}, // Ouvrir la galerie pour choisir une image
+                        color: Colors.blue,
+                      ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Jean Dupont',
+                  Text(
+                    user.uid,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -174,14 +307,15 @@ class ProfilePage extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'jean.dupont@email.com',
-                        style: TextStyle(
+                      Text(
+                        user.email,
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 16,
                         ),
                       ),
                       const SizedBox(width: 8),
+                      if (user.isEmailVerified) // Vérifiez si l'email est vérifié
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -247,7 +381,7 @@ class ProfilePage extends StatelessWidget {
   }) {
     return Column(
       children: [
-        Icon(icon, color: Colors.blue, size: 24),
+        Icon(icon, color: Colors.green, size: 24),
         const SizedBox(height: 8),
         Text(
           value,
@@ -324,6 +458,24 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  String _formatName(String rawName) {
+    // Supprimer les chiffres et les points
+    String cleanedName = rawName.replaceAll(RegExp(r'[0-9.]'), '');
+    
+    // Remplacer les underscores ou autres séparateurs par des espaces
+    cleanedName = cleanedName.replaceAll(RegExp(r'[_-]'), ' ');
+    
+    // Découper les mots pour s'assurer que chaque mot commence par une majuscule
+    List<String> words = cleanedName.split(' ').where((word) => word.isNotEmpty).toList();
+    List<String> capitalizedWords = words.map((word) {
+      return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
+    }).toList();
+
+    // Rejoindre les mots avec des espaces
+    return capitalizedWords.join(' ');
+  }
+
+
   Widget _buildPersonalInfoSection() {
     return Container(
       margin: const EdgeInsets.all(20),
@@ -353,13 +505,13 @@ class ProfilePage extends StatelessWidget {
           ),
           _buildInfoItem(
             title: 'Nom complet',
-            value: 'Jean Dupont',
+            value: _formatName(user.email.split('@').first),
             icon: Icons.person,
           ),
           _buildMenuDivider(),
           _buildInfoItem(
             title: 'Email',
-            value: 'jean.dupont@email.com',
+            value: user.email,
             icon: Icons.email,
           ),
           _buildMenuDivider(),
@@ -400,28 +552,39 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
           _buildPreferenceItem(
-              icon: Icons.notifications,
-              title: 'Notifications',
-              isSwitch: true,
-              onTap: () => {}),
+            icon: Icons.notifications,
+            title: 'Notifications',
+            isSwitch: true,
+            onTap: () => {},
+          ),
           _buildMenuDivider(),
           _buildPreferenceItem(
-              icon: Icons.language,
-              title: 'Langue',
-              value: 'Français',
-              onTap: () => {}),
+            icon: Icons.language,
+            title: 'Langue',
+            value: 'Français',
+            onTap: () => {},
+          ),
           _buildMenuDivider(),
           _buildPreferenceItem(
-              icon: Icons.dark_mode,
-              title: 'Thème sombre',
-              isSwitch: true,
-              onTap: () => {}),
+            icon: Icons.dark_mode,
+            title: 'Thème sombre',
+            isSwitch: true,
+            onTap: () => {},
+          ),
           _buildMenuDivider(),
           _buildPreferenceItem(
-              icon: Icons.logout,
-              title: 'Déconnexion',
-              color: Colors.red,
-              onTap: () => _handleLogout(context)),
+            icon: Icons.logout,
+            title: 'Déconnexion',
+            color: Colors.orange,
+            onTap: () => _handleLogout(context),
+          ),
+          _buildMenuDivider(),
+          _buildPreferenceItem(
+            icon: Icons.delete_forever,
+            title: 'Supprimer le compte',
+            color: Colors.red,
+            onTap: () => _handleDeleteAccount(context),
+          ),
         ],
       ),
     );
@@ -471,7 +634,7 @@ class ProfilePage extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Icon(icon, color: Colors.blue, size: 20),
+          Icon(icon, color: Colors.green, size: 20),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -498,37 +661,40 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildPreferenceItem({
-    required IconData icon,
-    required String title,
-    String? value,
-    bool isSwitch = false,
-    Color color = Colors.blue,
-    required void Function() onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
+  required IconData icon,
+  required String title,
+  String? value,
+  bool isSwitch = false,
+  Color color = Colors.blue,
+  required void Function() onTap,  // Le paramètre est bien défini
+}) {
+  return ListTile(
+    leading: Icon(icon, color: color),
+    title: Text(
+      title,
+      style: TextStyle(
+        color: color,
+        fontWeight: FontWeight.w500,
       ),
-      trailing: isSwitch
-          ? Switch(
-              value: true,
-              onChanged: (value) {},
-              activeColor: Colors.blue,
-            )
-          : value != null
-              ? Text(
-                  value,
-                  style: const TextStyle(color: Colors.grey),
-                )
-              : const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: isSwitch ? null : () {},
-    );
-  }
+    ),
+    trailing: isSwitch
+        ? Switch(
+            value: true,
+            onChanged: (value) {},
+            activeColor: Colors.blue,
+          )
+        : value != null
+            ? Text(
+                value,
+                style: const TextStyle(color: Colors.grey),
+              )
+            : const Icon(Icons.arrow_forward_ios, size: 16),
+    // Remplacer ceci :
+    // onTap: isSwitch ? null : () {},
+    // Par ceci :
+    onTap: isSwitch ? null : onTap,  // Utiliser la fonction onTap passée en paramètre
+  );
+}
 
   Widget _buildMenuDivider() {
     return const Divider(height: 1, indent: 16, endIndent: 16);

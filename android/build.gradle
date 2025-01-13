@@ -5,10 +5,17 @@ allprojects {
     }
 }
 buildscript {
-  dependencies {
-    // ... other dependencies
-    classpath 'com.google.gms:google-services:4.4.2'
-  }
+    ext.kotlin_version = '1.7.10'
+    repositories {
+        google()  // Ajoutez ceci s'il n'existe pas
+        mavenCentral()  // Ajoutez ceci s'il n'existe pas
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.google.gms:google-services:4.4.2'  // Vérifiez que cette ligne existe
+    }
 }
 rootProject.buildDir = "../build"
 subprojects {
