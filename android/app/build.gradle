@@ -1,46 +1,59 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "com.google.gms.google-services"  // Plugin Google Services
     id "dev.flutter.flutter-gradle-plugin"
 }
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
-apply plugin: 'com.google.gms.google-services'
+
 android {
     namespace = "com.example.project"
-    compileSdk = flutter.compileSdkVersion
+    compileSdkVersion 34 // Utilisez la dernière version disponible
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8
+        jvmTarget = "17"
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.project"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion 34 // Utilisez la même version que compileSdkVersion
+        versionCode = flutter.versionCode.toInteger()
         versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("keystore.jks") // Remplacez par le chemin de votre fichier keystore
+            storePassword "your_store_password" // Remplacez par votre mot de passe
+            keyAlias "your_key_alias" // Remplacez par votre alias de clé
+            keyPassword "your_key_password" // Remplacez par votre mot de passe de clé
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.release // Utilisez le signingConfig release
         }
+    }
+
+    lintOptions {
+        disable 'InvalidPackage', 'OldTargetApi', 'ObsoleteLintCustomCheck'
     }
 }
 
 flutter {
     source = "../.."
 }
+
+dependencies {
+    implementation 'com.google.android.gms:play-services-auth:21.1.0' // Version mise à jour
+    implementation 'com.google.firebase:firebase-messaging:24.0.0' // Version mise à jour
+}
+
+apply plugin: 'com.google.gms.google-services' // Appliquer le plugin Google Services

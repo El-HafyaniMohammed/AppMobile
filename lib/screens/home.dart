@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import './Notification_Page.dart';
 
 // Theme and constants
 class AppColors {
@@ -50,7 +51,6 @@ class Product {
   });
 }
 
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -83,6 +83,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
   String selectedCategory = 'All';
   final searchController = TextEditingController();
   bool isLoading = false;
+  String searchQuery = '';
 
   final List<String> categories = [
     'All',
@@ -132,9 +133,9 @@ class _DiscoverPageState extends State<DiscoverPage> {
       imagePath: 'assets/img/product_7.png',
     ),
     Product(
-      id: '4',
-      name: 'Xbox serie X',
-      brand: 'Apple',
+      id: '5',
+      name: 'Xbox Series X',
+      brand: 'Microsoft',
       price: 3990.00,
       rating: 4.5,
       imagePath: 'assets/img/product_8.png',
@@ -154,8 +155,38 @@ class _DiscoverPageState extends State<DiscoverPage> {
     });
   }
 
+  // Fonction pour filtrer les produits en fonction de la recherche
+  List<Product> _filterProducts() {
+    if (searchQuery.isEmpty) {
+      return products;
+    } else {
+      return products.where((product) {
+        return product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            product.brand.toLowerCase().contains(searchQuery.toLowerCase());
+      }).toList();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    searchController.addListener(() {
+      setState(() {
+        searchQuery = searchController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filteredProducts = _filterProducts();
+
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
@@ -187,7 +218,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
                     )
                   : SliverPadding(
                       padding: const EdgeInsets.all(16),
-                      sliver: _buildProductsGrid(),
+                      sliver: _buildProductsGrid(filteredProducts),
                     ),
             ],
           ),
@@ -205,7 +236,12 @@ class _DiscoverPageState extends State<DiscoverPage> {
           children: [
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NotificationPage()),
+                );
+              },
             ),
             Positioned(
               right: 8,
@@ -262,7 +298,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
   Widget _buildSalesBanner() {
     return Container(
       width: double.infinity,
-      height: 180, // Increased height to provide more space for the content
+      height: 180,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
@@ -274,14 +310,12 @@ class _DiscoverPageState extends State<DiscoverPage> {
       child: Stack(
         children: [
           Positioned(
-            right:
-                -30, // Positioned slightly out of bounds to give a better visual effect
+            right: -30,
             bottom: 0,
             child: Image.asset(
-              'assets/img/product_6.png', // Ensure the image exists in the assets folder
-              height: 160, // Image size adjusted for better layout balance
-              fit: BoxFit
-                  .contain, // Ensure the image fits within the space properly
+              'assets/img/product_6.png',
+              height: 160,
+              fit: BoxFit.contain,
             ),
           ),
           Padding(
@@ -293,8 +327,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
                   'Flash Sale',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize:
-                        26, // Slightly larger text size for better visibility
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -304,11 +337,10 @@ class _DiscoverPageState extends State<DiscoverPage> {
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
-                    fontWeight: FontWeight
-                        .w400, // Use lighter weight for better readability
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(height: 16), // Increased space before the button
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
@@ -319,13 +351,13 @@ class _DiscoverPageState extends State<DiscoverPage> {
                       vertical: 12,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // Rounded button
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   child: const Text(
                     'Shop Now',
                     style: TextStyle(
-                      fontSize: 16, // Adjusted font size for better balance
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -395,7 +427,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     );
   }
 
-  Widget _buildProductsGrid() {
+  Widget _buildProductsGrid(List<Product> productsToDisplay) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -405,10 +437,10 @@ class _DiscoverPageState extends State<DiscoverPage> {
       ),
       delegate: SliverChildBuilderDelegate(
         (context, index) {
-          final product = products[index];
+          final product = productsToDisplay[index];
           return ProductCard(product: product);
         },
-        childCount: products.length,
+        childCount: productsToDisplay.length,
       ),
     );
   }
@@ -486,7 +518,8 @@ class _ProductCardState extends State<ProductCard> {
                       widget.product.isFavorite
                           ? Icons.favorite
                           : Icons.favorite_border,
-                      color: widget.product.isFavorite ? Colors.red : Colors.grey,
+                      color:
+                          widget.product.isFavorite ? Colors.red : Colors.grey,
                     ),
                     onPressed: () {
                       setState(() {

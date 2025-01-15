@@ -7,6 +7,7 @@ import 'user_model.dart';
 // ignore: unused_import
 import 'user_page.dart';
 import 'main_screen.dart';
+import './ForgotPasswordPage.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -381,7 +382,14 @@ class _LoginContentState extends State<LoginContent> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {},
+                onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ForgotPasswordPage(),
+                  ),
+                );
+              },
                 child: Text(
                   'Forgot Password?',
                   style: TextStyle(
