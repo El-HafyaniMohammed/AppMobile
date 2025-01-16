@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import './screens/profile.dart';
 import './screens/home.dart';
 import './screens/user_model.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -33,12 +34,12 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF4CAF50),
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Replace with a valid UserModel instance
+      home: MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Remplacez par un UserModel valide
       routes: {
-        '/main': (context) => MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Replace with a valid UserModel instance
+        '/main': (context) => MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Remplacez par un UserModel valide
         '/login': (context) => const LoginScreen(),
         '/Home': (context) => const HomeScreen(),
-        '/profile': (context) => ProfilePage(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Replace with a valid UserModel instance
+        '/profile': (context) => ProfilePage(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Remplacez par un UserModel valide
       },
     );
   }

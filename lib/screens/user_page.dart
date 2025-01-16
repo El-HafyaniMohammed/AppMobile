@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import 'phone_verification_dialog.dart';
+import 'dart:io';
 class ProfilePage extends StatefulWidget {
   final UserModel user;
   
@@ -61,6 +63,7 @@ class _ProfilePageState extends State<ProfilePage>{
     _phoneController.dispose();
     super.dispose();
   }
+
   String formatMoroccanPhoneNumber(String phone) {
   // Supprimer tous les espaces et caractères spéciaux
   phone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
@@ -190,6 +193,28 @@ class _ProfilePageState extends State<ProfilePage>{
     });
   }
 }
+
+  
+  Future<void> _pickImage() async {
+  // ignore: no_leading_underscores_for_local_identifiers
+  final ImagePicker _picker = ImagePicker();
+  final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
+  if (image != null) {
+     // ignore: avoid_print
+    print('Image sélectionnée : ${image.path}');
+    File imageFile = File(image.path);
+    String? imageUrl = await user.uploadImage(imageFile);
+
+    if (imageUrl != null) {
+      await user.updateUserInfo(newPhotoURL: imageUrl);
+      setState(() {
+        user.photoURL = imageUrl; // Assurez-vous que cette ligne est exécutée
+      });
+    }
+  }
+}
+
   Future<void> _handleLogout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -434,7 +459,7 @@ class _ProfilePageState extends State<ProfilePage>{
                     alignment: Alignment.bottomRight,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -446,9 +471,11 @@ class _ProfilePageState extends State<ProfilePage>{
                             ),
                           ],
                         ),
-                        child: const CircleAvatar(
+                        child: CircleAvatar(
                           radius: 50,
-                          backgroundImage: NetworkImage('https://via.placeholder.com/100'),
+                          backgroundImage: user.photoURL != null
+                              ? NetworkImage(user.photoURL!)
+                              : const NetworkImage('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcyI9Cvp53aaP9XeRn-ZKbJDH2QaWC72O26A&s'),
                         ),
                       ),
                       Container(
@@ -461,9 +488,9 @@ class _ProfilePageState extends State<ProfilePage>{
                         icon: const Icon(
                           Icons.camera_alt,
                           color: Colors.white,
-                          size: 30,
+                          size: 20,
                         ),
-                        onPressed: (){}, // Ouvrir la galerie pour choisir une image
+                        onPressed: _pickImage, // Ouvrir la galerie pour choisir une image
                         color: Colors.blue,
                       ),
                       ),

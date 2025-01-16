@@ -1,6 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+// ignore: unused_import
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 class UserModel {
   final String uid;
   final String email;
@@ -212,4 +215,19 @@ class UserModel {
            country != null &&
            postalCode != null;
   }
+  Future<String?> uploadImage(File imageFile) async {
+    try {
+      String fileName = 'profile_images/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      Reference storageReference = FirebaseStorage.instance.ref().child(fileName);
+      UploadTask uploadTask = storageReference.putFile(imageFile);
+      TaskSnapshot taskSnapshot = await uploadTask;
+      String downloadURL = await taskSnapshot.ref.getDownloadURL();
+      return downloadURL;
+    } catch (e) {
+      // ignore: avoid_print
+      print('Erreur lors du téléchargement de l\'image: $e');
+      return null;
+    }
+  }
+  
 }

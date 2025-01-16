@@ -25,6 +25,7 @@ android {
         targetSdkVersion 34 // Utilisez la même version que compileSdkVersion
         versionCode = flutter.versionCode.toInteger()
         versionName = flutter.versionName
+        multiDexEnabled true // Activer le multidex
     }
 
     signingConfigs {
@@ -52,8 +53,14 @@ flutter {
 }
 
 dependencies {
+    implementation platform('com.google.firebase:firebase-bom:32.3.1') // Utilisez la dernière version de Firebase BOM
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-storage'
+    implementation 'com.google.firebase:firebase-messaging'
     implementation 'com.google.android.gms:play-services-auth:21.1.0' // Version mise à jour
-    implementation 'com.google.firebase:firebase-messaging:24.0.0' // Version mise à jour
+    implementation 'androidx.multidex:multidex:2.0.1' // Ajouter la dépendance multidex
 }
 
 apply plugin: 'com.google.gms.google-services' // Appliquer le plugin Google Services
