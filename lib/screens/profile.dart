@@ -8,6 +8,8 @@ import 'user_model.dart';
 import 'user_page.dart';
 import 'main_screen.dart';
 import './ForgotPasswordPage.dart';
+import 'package:flutter/gestures.dart';
+import './privacy_and_terms.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -862,7 +864,6 @@ Widget _buildSocialButton({
 }
 
 Widget _buildTermsText() {
-  
   return Builder(
     builder: (context) => RichText(
       textAlign: TextAlign.center,
@@ -877,6 +878,13 @@ Widget _buildTermsText() {
               color: Theme.of(context).primaryColor,
               decoration: TextDecoration.underline,
             ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TermsOfServicePage()),
+                );
+              },
           ),
           const TextSpan(text: ' and '),
           TextSpan(
@@ -886,6 +894,13 @@ Widget _buildTermsText() {
               color: Theme.of(context).primaryColor,
               decoration: TextDecoration.underline,
             ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
+                );
+              },
           ),
         ],
       ),

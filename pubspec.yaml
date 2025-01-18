@@ -8,7 +8,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+    sdk: ">=3.0.0 <4.0.0"  # تم تحديثه ليكون متوافقًا مع Flutter 3.x
 
 dependencies:
   flutter:
@@ -26,6 +26,7 @@ dependencies:
   firebase_auth: ^5.4.0
   google_sign_in: ^6.2.2
   image_picker: ^0.8.7+4
+  provider: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -49,7 +50,6 @@ flutter:
     - assets/img/login.png
     - assets/img/9game_logo.png
     - assets/animation/empty_cart.json
-
   fonts:
     - family: Poppins
       fonts:
