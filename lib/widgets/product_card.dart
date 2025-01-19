@@ -1,6 +1,6 @@
 // Product Card Widget
 import 'package:flutter/material.dart';
-import '../screens/notification_page.dart';
+import '../screens/Notification/Notification_Page.dart';
 import '../models/product.dart';
 import '../config/AppStyles.dart' as config;
 class ProductCard extends StatefulWidget {

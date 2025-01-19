@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../notification_page.dart';
+import '../Notification/notification_page.dart';
 import '../../models/product.dart';
 import '../../config/AppStyles.dart' as config;
 import '../../widgets/product_card.dart';
