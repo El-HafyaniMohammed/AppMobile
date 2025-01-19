@@ -10,6 +10,7 @@
 analyzer:
   errors:
     duplicate_ignore: ignore
+    file_names: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:

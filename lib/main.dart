@@ -1,12 +1,12 @@
 // ignore: unused_import
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:project/screens/user_page.dart';
+import 'package:project/screens/User/user_page.dart';
 import 'screens/main_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
-import './screens/profile.dart';
-import './screens/home.dart';
-import './screens/user_model.dart';
+import 'screens/User/profile.dart';
+import './screens/Home/home.dart';
+import 'models/user_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

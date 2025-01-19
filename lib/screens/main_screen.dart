@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'home.dart';
-import 'cart.dart';
-import 'favorite.dart';
-import 'profile.dart';
-import 'user_page.dart';// Remplacez par la classe correcte.
-import 'user_model.dart';
+import './Home/home.dart';
+import 'Cart/cart.dart';
+import 'Favorite/favorite.dart';
+import 'User/profile.dart';
+import 'User/user_page.dart';// Remplacez par la classe correcte.
+import '../models/user_model.dart';
 class MainScreen extends StatefulWidget {
   final UserModel user;
   const MainScreen({super.key, required this.user});
