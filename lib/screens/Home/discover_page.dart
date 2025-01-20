@@ -3,6 +3,7 @@ import '../Notification/notification_page.dart';
 import '../../models/product.dart';
 import '../../config/AppStyles.dart' as config;
 import '../../widgets/product_card.dart';
+import '../../services/firebase_service.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -16,63 +17,9 @@ class _DiscoverPageState extends State<DiscoverPage> {
   final searchController = TextEditingController();
   bool isLoading = false;
   String searchQuery = '';
-
-  final List<String> categories = [
-    'All',
-    'Smartphones',
-    'Headphones',
-    'Laptops',
-    'Smart Watches',
-    'Tablets',
-    'Speakers',
-  ];
-
-  final List<Product> products = [
-    Product(
-      id: '1',
-      name: 'AirPods',
-      brand: 'Apple',
-      price: 132.00,
-      rating: 4.8,
-      imagePath: 'assets/img/product_4.png',
-      isOnSale: true,
-      salePrice: 119.99,
-    ),
-    Product(
-      id: '2',
-      name: 'MacBook Air M1',
-      brand: 'Apple',
-      price: 1100.00,
-      rating: 4.9,
-      imagePath: 'assets/img/product_5.png',
-    ),
-    Product(
-      id: '3',
-      name: 'Galaxy Watch 5',
-      brand: 'Samsung',
-      price: 299.00,
-      rating: 4.7,
-      imagePath: 'assets/img/product_6.png',
-      isOnSale: true,
-      salePrice: 399.99,
-    ),
-    Product(
-      id: '4',
-      name: 'iPad Pro',
-      brand: 'Apple',
-      price: 799.00,
-      rating: 4.9,
-      imagePath: 'assets/img/product_7.png',
-    ),
-    Product(
-      id: '5',
-      name: 'Xbox Series X',
-      brand: 'Microsoft',
-      price: 3990.00,
-      rating: 4.5,
-      imagePath: 'assets/img/product_8.png',
-    ),
-  ];
+  final FirebaseService _firebaseService = FirebaseService();
+  List<Product> products = [];
+  List<String> categories = []; 
 
   void _onCategorySelected(String category) {
     setState(() {
@@ -89,14 +36,24 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
   // Fonction pour filtrer les produits en fonction de la recherche
   List<Product> _filterProducts() {
-    if (searchQuery.isEmpty) {
-      return products;
-    } else {
-      return products.where((product) {
-        return product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-            product.brand.toLowerCase().contains(searchQuery.toLowerCase());
+    List<Product> filteredProducts = products;
+
+    // Filtrage par catégorie
+    if (selectedCategory != 'All') {
+      filteredProducts = filteredProducts.where((product) {
+        return product.category == selectedCategory;
       }).toList();
     }
+
+    // Filtrage par recherche
+    if (searchQuery.isNotEmpty) {
+      filteredProducts = filteredProducts.where((product) {
+        return product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+              product.brand.toLowerCase().contains(searchQuery.toLowerCase());
+      }).toList();
+    }
+
+    return filteredProducts;
   }
 
   @override
@@ -107,6 +64,47 @@ class _DiscoverPageState extends State<DiscoverPage> {
         searchQuery = searchController.text;
       });
     });
+    _loadCategories(); 
+    _loadProducts();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final fetchedCategories = await _firebaseService.getCategories();
+      setState(() {
+        categories = ['All', ...fetchedCategories]; // Ajoute 'All' aux catégories
+      });
+    } catch (e) {
+      // ignore: avoid_print
+      print('Erreur lors du chargement des catégories: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final fetchedProducts = await _firebaseService.getProducts();
+      setState(() {
+        products = fetchedProducts;
+      });
+    } catch (e) {
+      // Afficher un message d'erreur à l'utilisateur ou logger l'erreur
+      // ignore: avoid_print
+      print('Erreur lors du chargement des produits: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -123,7 +121,24 @@ class _DiscoverPageState extends State<DiscoverPage> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            await Future.delayed(const Duration(seconds: 1));
+            setState(() {
+              isLoading = true;
+            });
+            await _loadProducts();
+            setState(() {
+              isLoading
+                  ? const SliverFillRemaining(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : filteredProducts.isEmpty
+                      ? const SliverFillRemaining(
+                          child: Center(child: Text('Aucun produit trouvé')),
+                        )
+                      : SliverPadding(
+                          padding: const EdgeInsets.all(16),
+                          sliver: _buildProductsGrid(filteredProducts),
+                        );
+            });
           },
           child: CustomScrollView(
             slivers: [
@@ -360,20 +375,30 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 
   Widget _buildProductsGrid(List<Product> productsToDisplay) {
-    return SliverGrid(
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 16,
-        crossAxisSpacing: 16,
-        childAspectRatio: 0.75,
-      ),
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final product = productsToDisplay[index];
-          return ProductCard(product: product);
-        },
-        childCount: productsToDisplay.length,
-      ),
-    );
-  }
+  return SliverGrid(
+    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      childAspectRatio: 0.75,
+    ),
+    delegate: SliverChildBuilderDelegate(
+      (context, index) {
+        final product = productsToDisplay[index];
+        return ProductCard(
+          product: product,
+          onFavoriteChanged: (productId, isFavorite) async {
+            await _firebaseService.updateProductFavoriteStatus(productId, isFavorite);
+            setState(() {
+              // Mettre à jour l'état local du produit
+              final updatedProduct = products.firstWhere((p) => p.id == productId);
+              updatedProduct.isFavorite = isFavorite;
+            });
+          },
+        );
+      },
+      childCount: productsToDisplay.length,
+    ),
+  );
+}
 }

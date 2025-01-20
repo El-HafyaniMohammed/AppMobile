@@ -53,6 +53,7 @@ flutter:
     - assets/img/login.png
     - assets/img/9game_logo.png
     - assets/animation/empty_cart.json
+    - assets/animation/success.json
   fonts:
     - family: Poppins
       fonts:

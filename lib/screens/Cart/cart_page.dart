@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../../models/cart_item.dart';
+import 'CheckoutPage.dart';
+
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
 
@@ -10,28 +12,12 @@ class CartPage extends StatefulWidget {
 
 class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  final List<CartItem> cartItems = [
-    CartItem(
-      name: "Moniteur",
-      image: "assets/img/product_1.png",
-      price: 2700.00,
-    ),
-    CartItem(
-      name: "Souris Logitech",
-      image: "assets/img/product_2.png",
-      price: 770.00,
-    ),
-    CartItem(
-      name: "Casque Logitech",
-      image: "assets/img/product_3.png",
-      price: 1530.00,
-    ),
-  ];
+  final List<CartItem> cartItems = [];
+  double deliveryFee = 50.0;
+  double discountPercentage = 10;
 
   double get subtotal =>
       cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
-  double deliveryFee = 50.0;
-  double discountPercentage = 10;
   double get discount => subtotal * (discountPercentage / 100);
   double get total => subtotal + deliveryFee - discount;
 
@@ -433,7 +419,10 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                 Expanded(
                   flex: 3,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CheckoutPage(cartItems: [],)),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       padding: const EdgeInsets.symmetric(vertical: 16),

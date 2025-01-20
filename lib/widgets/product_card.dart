@@ -1,14 +1,16 @@
-// Product Card Widget
 import 'package:flutter/material.dart';
 import '../screens/Notification/Notification_Page.dart';
 import '../models/product.dart';
 import '../config/AppStyles.dart' as config;
+
 class ProductCard extends StatefulWidget {
   final Product product;
+  final Function(String productId, bool isFavorite) onFavoriteChanged;
 
   const ProductCard({
     super.key,
     required this.product,
+    required this.onFavoriteChanged,
   });
 
   @override
@@ -16,6 +18,33 @@ class ProductCard extends StatefulWidget {
 }
 
 class _ProductCardState extends State<ProductCard> {
+  // Fonction pour construire les étoiles du rating
+  Widget _buildRatingStars(double rating) {
+    return Row(
+      children: [
+        Row(
+          children: List.generate(5, (index) {
+            if (index < rating.floor()) {
+              return const Icon(Icons.star, size: 16, color: Colors.amber);
+            } else if (index == rating.floor() && rating % 1 != 0) {
+              return const Icon(Icons.star_half, size: 16, color: Colors.amber);
+            }
+            return const Icon(Icons.star_border, size: 16, color: Colors.amber);
+          }),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          rating.toString(),
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -74,12 +103,13 @@ class _ProductCardState extends State<ProductCard> {
                       widget.product.isFavorite
                           ? Icons.favorite
                           : Icons.favorite_border,
-                      color:
-                          widget.product.isFavorite ? Colors.red : Colors.grey,
+                      color: widget.product.isFavorite ? Colors.red : Colors.grey,
                     ),
-                    onPressed: () {
+                    onPressed: () async {
+                      final newFavoriteStatus = !widget.product.isFavorite;
+                      await widget.onFavoriteChanged(widget.product.id, newFavoriteStatus);
                       setState(() {
-                        widget.product.isFavorite = !widget.product.isFavorite;
+                        widget.product.isFavorite = newFavoriteStatus;
                       });
                     },
                   ),
@@ -89,23 +119,30 @@ class _ProductCardState extends State<ProductCard> {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: Text(
-              widget.product.name,
-              style: config.AppStyles.productTitle,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.product.name,
+                  style: config.AppStyles.productTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  widget.product.brand,
+                  style: const TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _buildRatingStars(widget.product.rating),
+              ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              widget.product.brand,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.all(8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
