@@ -4,6 +4,7 @@ import '../../models/product.dart';
 import '../../config/AppStyles.dart' as config;
 import '../../widgets/product_card.dart';
 import '../../services/firebase_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -375,30 +376,47 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 
   Widget _buildProductsGrid(List<Product> productsToDisplay) {
-  return SliverGrid(
-    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 0.75,
-    ),
-    delegate: SliverChildBuilderDelegate(
-      (context, index) {
-        final product = productsToDisplay[index];
-        return ProductCard(
-          product: product,
-          onFavoriteChanged: (productId, isFavorite) async {
-            await _firebaseService.updateProductFavoriteStatus(productId, isFavorite);
-            setState(() {
-              // Mettre à jour l'état local du produit
-              final updatedProduct = products.firstWhere((p) => p.id == productId);
-              updatedProduct.isFavorite = isFavorite;
-            });
-          },
-        );
-      },
-      childCount: productsToDisplay.length,
-    ),
-  );
-}
+    return SliverGrid(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 0.75,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final product = productsToDisplay[index];
+          return ProductCard(
+            product: product,
+            onFavoriteChanged: (productId, isFavorite) async {
+              await _firebaseService.updateProductFavoriteStatus(productId, isFavorite);
+              setState(() {
+                // Mettre à jour l'état local du produit
+                final updatedProduct = products.firstWhere((p) => p.id == productId);
+                updatedProduct.isFavorite = isFavorite;
+              });
+            },
+            onAddToCart: (productId) async {
+              final userId = FirebaseAuth.instance.currentUser?.uid;
+              if (userId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Veuillez vous connecter pour ajouter des articles au panier')),
+                );
+                return;
+              }
+
+              try {
+                await _firebaseService.addToCart(userId, productId);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erreur lors de l\'ajout au panier: $e')),
+                );
+              }
+            },
+          );
+        },
+        childCount: productsToDisplay.length,
+      ),
+    );
+  }
 }

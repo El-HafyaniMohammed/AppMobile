@@ -1,7 +1,12 @@
+// ignore_for_file: avoid_types_as_parameter_names
+
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/cart_item.dart';
 import 'CheckoutPage.dart';
+import '../../services/firebase_service.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -12,9 +17,13 @@ class CartPage extends StatefulWidget {
 
 class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  final List<CartItem> cartItems = [];
+  List<CartItem> cartItems = []; // Liste des articles du panier
   double deliveryFee = 50.0;
   double discountPercentage = 10;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseService _firebaseService = FirebaseService();
+  final String userId = FirebaseAuth.instance.currentUser!.uid; // ID de l'utilisateur
+  bool isLoading = false; // Indicateur de chargement
 
   double get subtotal =>
       cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
@@ -28,6 +37,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+    _loadCartItems(); // Charger les articles du panier depuis Firebase
   }
 
   @override
@@ -36,24 +46,91 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  void updateQuantity(int index, bool increase) {
+  // Charger les articles du panier depuis Firebase
+  Future<void> _loadCartItems() async {
     setState(() {
-      if (increase && cartItems[index].quantity < 99) {
-        cartItems[index].quantity++;
-      } else if (!increase && cartItems[index].quantity > 1) {
-        cartItems[index].quantity--;
-      }
+      isLoading = true;
+    });
+    try {
+      final items = await _firebaseService.getCartItems(userId); // Utiliser FirebaseService
+      setState(() {
+        cartItems = items;
+      });
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors du chargement du panier: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  // Mettre à jour la quantité d'un article dans Firebase
+  void updateQuantity(int index, bool increase) async {
+    final cartItem = cartItems[index];
+    final newQuantity = increase ? cartItem.quantity + 1 : cartItem.quantity - 1;
+
+    if (newQuantity < 1 || newQuantity > 99) return;
+
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .doc(cartItem.productId)
+          .update({'quantity': newQuantity});
+      setState(() {
+        cartItems[index].quantity = newQuantity;
+      });
       _controller.forward(from: 0);
-    });
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la mise à jour de la quantité: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
-  void removeItem(int index) {
+  // Supprimer un article du panier dans Firebase
+  void removeItem(int index) async {
+    final cartItem = cartItems[index];
     setState(() {
-      cartItems.removeAt(index);
+      isLoading = true;
     });
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .doc(cartItem.productId)
+          .delete();
+      setState(() {
+        cartItems.removeAt(index);
+      });
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la suppression de l\'article: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
-  void clearCart() {
+  // Vider le panier dans Firebase
+  void clearCart() async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -66,16 +143,37 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
             child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               setState(() {
-                cartItems.clear();
+                isLoading = true;
               });
-              Navigator.pop(context);
+              try {
+                final cartSnapshot = await _firestore
+                    .collection('users')
+                    .doc(userId)
+                    .collection('cart')
+                    .get();
+                for (final doc in cartSnapshot.docs) {
+                  await doc.reference.delete();
+                }
+                setState(() {
+                  cartItems.clear();
+                });
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Erreur lors de la suppression du panier: $e')),
+                );
+              } finally {
+                setState(() {
+                  isLoading = false;
+                });
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text(
               'Clear All',
@@ -90,66 +188,68 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Colors.grey[50],
-        appBar: AppBar(
-          centerTitle: true,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.shopping_cart_outlined,
-                  color: Colors.grey[800], size: 24),
-              const SizedBox(width: 8),
-              Text(
-                'Shopping Cart',
-                style: TextStyle(
-                  color: Colors.grey[800],
-                  fontWeight: FontWeight.w600,
-                  fontSize: 20,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            if (cartItems.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: clearCart,
-                  tooltip: 'Clear cart',
-                ),
-              ),
-          ],
-        ),
-       body: cartItems.isEmpty
-    ? Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              height: 150, // Taille de l'animation
-              child: Lottie.asset(
-                'assets/animation/empty_cart.json', // Chemin vers le fichier JSON
-                repeat: true,
-              ),
-            ),
-            const SizedBox(height: 16),
+            Icon(Icons.shopping_cart_outlined, color: Colors.grey[800], size: 24),
+            const SizedBox(width: 8),
             Text(
-              'Your cart is empty',
+              'Shopping Cart',
               style: TextStyle(
+                color: Colors.grey[800],
+                fontWeight: FontWeight.w600,
                 fontSize: 20,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
-      )
-            : Column(children: [
-                Expanded(
-                    child: ListView.builder(
+        actions: [
+          if (cartItems.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: IconButton(
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                onPressed: clearCart,
+                tooltip: 'Clear cart',
+              ),
+            ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : cartItems.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        height: 150,
+                        child: Lottie.asset(
+                          'assets/animation/empty_cart.json',
+                          repeat: true,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Your cart is empty',
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: cartItems.length,
                         itemBuilder: (context, index) {
@@ -182,20 +282,17 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                     item.image,
                                     fit: BoxFit.contain,
                                     errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(
-                                          Icons.image_not_supported);
+                                      return const Icon(Icons.image_not_supported);
                                     },
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Expanded(
                                             child: Text(
@@ -207,8 +304,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                             ),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.close,
-                                                size: 20),
+                                            icon: const Icon(Icons.close, size: 20),
                                             onPressed: () => removeItem(index),
                                             padding: EdgeInsets.zero,
                                             color: Colors.grey[400],
@@ -225,8 +321,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                       ),
                                       const SizedBox(height: 12),
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
                                             '${item.price.toStringAsFixed(2)} Dh',
@@ -239,35 +334,27 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                           Container(
                                             decoration: BoxDecoration(
                                               color: Colors.grey[50],
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
+                                              borderRadius: BorderRadius.circular(12),
                                             ),
                                             child: Row(
                                               children: [
                                                 _QuantityButton(
                                                   icon: Icons.remove,
-                                                  onPressed: () =>
-                                                      updateQuantity(
-                                                          index, false),
+                                                  onPressed: () => updateQuantity(index, false),
                                                 ),
                                                 Container(
-                                                  padding: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 12),
+                                                  padding: const EdgeInsets.symmetric(horizontal: 12),
                                                   child: Text(
                                                     item.quantity.toString(),
                                                     style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                                      fontWeight: FontWeight.bold,
                                                       fontSize: 16,
                                                     ),
                                                   ),
                                                 ),
                                                 _QuantityButton(
                                                   icon: Icons.add,
-                                                  onPressed: () =>
-                                                      updateQuantity(
-                                                          index, true),
+                                                  onPressed: () => updateQuantity(index, true),
                                                 ),
                                               ],
                                             ),
@@ -280,11 +367,13 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                               ],
                             ),
                           );
-                        })),
-                      _buildCheckoutSection()
-              ]
-              )
-            );
+                        },
+                      ),
+                    ),
+                    _buildCheckoutSection(),
+                  ],
+                ),
+    );
   }
 
   Widget _buildCheckoutSection() {
@@ -421,7 +510,9 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                   child: ElevatedButton(
                     onPressed: () => Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => const CheckoutPage(cartItems: [],)),
+                      MaterialPageRoute(
+                        builder: (context) => CheckoutPage(cartItems: cartItems), // Passer les articles du panier
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,

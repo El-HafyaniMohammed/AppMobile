@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
 // ignore: unused_import
 import 'user_page.dart';
@@ -252,83 +253,101 @@ class _LoginContentState extends State<LoginContent> {
   }
 
   void _handleLogin() async {
-  // 1. Validate form first
-  if (!(_formKey.currentState?.validate() ?? false)) {
-    return;
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      // Connexion avec Firebase Authentication
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+
+      // Vérifier si l'utilisateur a un panier
+      final userId = userCredential.user!.uid;
+      final cartSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .get();
+
+      // Si l'utilisateur n'a pas de panier, en créer un vide
+      if (cartSnapshot.docs.isEmpty) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('cart')
+            .doc('initial')
+            .set({
+          'createdAt': DateTime.now(), // Optionnel : date de création du panier
+        });
+      }
+
+      // Récupérer les informations de l'utilisateur depuis Firestore
+      final user = await UserModel.getUserFromFirestore(userId);
+      if (user == null) {
+        // Si l'utilisateur n'existe pas dans Firestore, créer un nouvel utilisateur
+        final newUser = UserModel.fromFirebaseUser(userCredential.user!);
+        await newUser.saveToFirestore();
+        await newUser.updateLastLogin();
+      } else {
+        // Mettre à jour la dernière connexion
+        await user.updateLastLogin();
+      }
+
+      // Rediriger vers l'écran principal
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MainScreen(user: user ?? UserModel.fromFirebaseUser(userCredential.user!)),
+          ),
+        );
+      }
+
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = 'No user found with this email.';
+          break;
+        case 'wrong-password':
+          errorMessage = 'Wrong password provided.';
+          break;
+        case 'invalid-email':
+          errorMessage = 'Invalid email format.';
+          break;
+        case 'user-disabled':
+          errorMessage = 'This account has been disabled.';
+          break;
+        case 'too-many-requests':
+          errorMessage = 'Too many attempts. Please try again later.';
+          break;
+        default:
+          errorMessage = 'An error occurred during login. Please try again.';
+      }
+      
+      if (mounted) {
+        setState(() => _error = errorMessage);
+      }
+
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = 'An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
-  // 2. Update loading state
-  setState(() {
-    _isLoading = true;
-    _error = null;  // Reset any previous errors
-  });
-
-  try {
-    // 3. Attempt Firebase login
-    // ignore: unused_local_variable
-    final UserCredential userCredential = 
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-    final user = UserModel.fromFirebaseUser(userCredential.user!);
-    await user.saveToFirestore(); // Sauvegarder dans Firestore
-    await user.updateLastLogin(); // Mettre à jour la dernière connexion
-    // 4. Handle successful login
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MainScreen(user: user),
-        ),
-      );
-      // Message de succès
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Successfully logged in'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-
-  } on FirebaseAuthException catch (e) {
-    // 5. Handle specific Firebase Auth errors
-    String errorMessage;
-    switch (e.code) {
-      case 'user-not-found':
-        errorMessage = 'No user found with this email.';
-        break;
-      case 'wrong-password':
-        errorMessage = 'Wrong password provided.';
-        break;
-      case 'invalid-email':
-        errorMessage = 'Invalid email format.';
-        break;
-      case 'user-disabled':
-        errorMessage = 'This account has been disabled.';
-        break;
-      case 'too-many-requests':
-        errorMessage = 'Too many attempts. Please try again later.';
-        break;
-      default:
-        errorMessage = 'An error occurred during login. Please try again.';
-    }
-    
-    if (mounted) {
-      setState(() => _error = errorMessage);
-    }
-
-  } catch (e) {
-    // 6. Handle any other unexpected errors
-    if (mounted) {
-      setState(() => _error = 'An unexpected error occurred. Please try again.');
-    }
-  } finally {
-    // 7. Always reset loading state if widget is still mounted
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
-  }
-}
 
 
   @override
@@ -592,12 +611,30 @@ class _SignupContentState extends State<SignupContent> {
       final password = _passwordController.text.trim();
       final displayName = _nameController.text.trim();
 
+      // Créer l'utilisateur dans Firebase Authentication
       final userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
 
+      // Mettre à jour le nom d'affichage de l'utilisateur
       await userCredential.user?.updateDisplayName(displayName);
 
+      // Créer un panier vide pour l'utilisateur dans Firestore
       if (userCredential.user != null) {
+        final userId = userCredential.user!.uid;
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('cart')
+            .doc('initial')
+            .set({
+          'createdAt': DateTime.now(), // Optionnel : date de création du panier
+        });
+
+        // Créer un nouvel utilisateur dans Firestore
+        final newUser = UserModel.fromFirebaseUser(userCredential.user!);
+        await newUser.saveToFirestore();
+
+        // Envoyer un e-mail de vérification
         await _sendVerificationEmail(userCredential.user!);
 
         if (mounted) {

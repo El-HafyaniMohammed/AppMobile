@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import '../screens/Notification/Notification_Page.dart';
+import '../services/firebase_service.dart'; // Add this import
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/product.dart';
 import '../config/AppStyles.dart' as config;
 
 class ProductCard extends StatefulWidget {
   final Product product;
   final Function(String productId, bool isFavorite) onFavoriteChanged;
+  final Function(String productId)
+      onAddToCart; // Nouvelle fonction pour ajouter au panier
 
   const ProductCard({
     super.key,
     required this.product,
     required this.onFavoriteChanged,
+    required this.onAddToCart, // Ajout du paramètre
   });
 
   @override
@@ -103,11 +108,13 @@ class _ProductCardState extends State<ProductCard> {
                       widget.product.isFavorite
                           ? Icons.favorite
                           : Icons.favorite_border,
-                      color: widget.product.isFavorite ? Colors.red : Colors.grey,
+                      color:
+                          widget.product.isFavorite ? Colors.red : Colors.grey,
                     ),
                     onPressed: () async {
                       final newFavoriteStatus = !widget.product.isFavorite;
-                      await widget.onFavoriteChanged(widget.product.id, newFavoriteStatus);
+                      await widget.onFavoriteChanged(
+                          widget.product.id, newFavoriteStatus);
                       setState(() {
                         widget.product.isFavorite = newFavoriteStatus;
                       });
@@ -175,7 +182,33 @@ class _ProductCardState extends State<ProductCard> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.add_shopping_cart_outlined),
-                  onPressed: () {},
+                  onPressed: () async {
+                    final userId = FirebaseAuth.instance.currentUser?.uid;
+                    if (userId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                                'Veuillez vous connecter pour ajouter des articles au panier')),
+                      );
+                      return;
+                    }
+
+                    try {
+                      await FirebaseService()
+                          .addToCart(userId, widget.product.id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                                '${widget.product.name} ajouté au panier')),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content:
+                                Text('Erreur lors de l\'ajout au panier: $e')),
+                      );
+                    }
+                  },
                 ),
               ],
             ),

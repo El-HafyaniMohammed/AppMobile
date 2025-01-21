@@ -9,6 +9,7 @@ class Product {
   final double? salePrice;
   bool isFavorite;
   final String category;
+  int quantity; // Ajout de la quantité
 
   Product({
     required this.id,
@@ -21,21 +22,24 @@ class Product {
     this.salePrice,
     this.isFavorite = false,
     required this.category,
+    this.quantity = 1, // Initialisation de la quantité à 1
   });
+
   factory Product.fromMap(Map<String, dynamic> map) {
-  return Product(
-    id: map['id'] ?? 'Unknown ID', // Valeur par défaut
-    name: map['name'] ?? 'Unknown Product', // Valeur par défaut
-    brand: map['brand'] ?? 'Unknown Brand', // Valeur par défaut
-    price: (map['price'] as num?)?.toDouble() ?? 0.0, // Valeur par défaut
-    rating: (map['rating'] as num?)?.toDouble() ?? 0.0, // Valeur par défaut
-    imagePath: map['imagePath'] ?? 'assets/img/default.jpg', // Valeur par défaut
-    isOnSale: map['isOnSale'] as bool? ?? true, // Valeur par défaut
-    salePrice: (map['salePrice'] as num?)?.toDouble(), // Nullable
-    isFavorite: map['isFavorite'] as bool? ?? false, //value par défaut
-    category: map['category'] as String,
-  );
-}
+    return Product(
+      id: map['id'] ?? 'Unknown ID',
+      name: map['name'] ?? 'Unknown Product',
+      brand: map['brand'] ?? 'Unknown Brand',
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
+      imagePath: map['imagePath'] ?? 'assets/img/default.jpg',
+      isOnSale: map['isOnSale'] as bool? ?? true,
+      salePrice: (map['salePrice'] as num?)?.toDouble(),
+      isFavorite: map['isFavorite'] as bool? ?? false,
+      category: map['category'] as String,
+      quantity: map['quantity'] as int? ?? 1, // Charger la quantité depuis Firestore
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -48,6 +52,7 @@ class Product {
       'isOnSale': isOnSale,
       'salePrice': salePrice,
       'isFavorite': isFavorite,
+      'quantity': quantity, // Sauvegarder la quantité dans Firestore
     };
   }
 }
