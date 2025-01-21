@@ -20,42 +20,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
   String searchQuery = '';
   final FirebaseService _firebaseService = FirebaseService();
   List<Product> products = [];
-  List<String> categories = []; 
-
-  void _onCategorySelected(String category) {
-    setState(() {
-      selectedCategory = category;
-      isLoading = true;
-    });
-
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        isLoading = false;
-      });
-    });
-  }
-
-  // Fonction pour filtrer les produits en fonction de la recherche
-  List<Product> _filterProducts() {
-    List<Product> filteredProducts = products;
-
-    // Filtrage par catégorie
-    if (selectedCategory != 'All') {
-      filteredProducts = filteredProducts.where((product) {
-        return product.category == selectedCategory;
-      }).toList();
-    }
-
-    // Filtrage par recherche
-    if (searchQuery.isNotEmpty) {
-      filteredProducts = filteredProducts.where((product) {
-        return product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-              product.brand.toLowerCase().contains(searchQuery.toLowerCase());
-      }).toList();
-    }
-
-    return filteredProducts;
-  }
+  List<String> categories = [];
 
   @override
   void initState() {
@@ -65,10 +30,17 @@ class _DiscoverPageState extends State<DiscoverPage> {
         searchQuery = searchController.text;
       });
     });
-    _loadCategories(); 
+    _loadCategories();
     _loadProducts();
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  // Fonction pour charger les catégories
   Future<void> _loadCategories() async {
     setState(() {
       isLoading = true;
@@ -88,6 +60,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     }
   }
 
+  // Fonction pour charger les produits
   Future<void> _loadProducts() async {
     setState(() {
       isLoading = true;
@@ -98,7 +71,6 @@ class _DiscoverPageState extends State<DiscoverPage> {
         products = fetchedProducts;
       });
     } catch (e) {
-      // Afficher un message d'erreur à l'utilisateur ou logger l'erreur
       // ignore: avoid_print
       print('Erreur lors du chargement des produits: $e');
     } finally {
@@ -108,10 +80,33 @@ class _DiscoverPageState extends State<DiscoverPage> {
     }
   }
 
-  @override
-  void dispose() {
-    searchController.dispose();
-    super.dispose();
+  // Fonction pour filtrer les produits en fonction de la catégorie et de la recherche
+  List<Product> _filterProducts() {
+    List<Product> filteredProducts = products;
+
+    // Filtrage par catégorie
+    if (selectedCategory != 'All') {
+      filteredProducts = filteredProducts.where((product) {
+        return product.category == selectedCategory;
+      }).toList();
+    }
+
+    // Filtrage par recherche
+    if (searchQuery.isNotEmpty) {
+      filteredProducts = filteredProducts.where((product) {
+        return product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            product.brand.toLowerCase().contains(searchQuery.toLowerCase());
+      }).toList();
+    }
+
+    return filteredProducts;
+  }
+
+  // Fonction pour gérer le changement de catégorie
+  void _onCategorySelected(String category) {
+    setState(() {
+      selectedCategory = category;
+    });
   }
 
   @override
@@ -122,24 +117,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            setState(() {
-              isLoading = true;
-            });
             await _loadProducts();
-            setState(() {
-              isLoading
-                  ? const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : filteredProducts.isEmpty
-                      ? const SliverFillRemaining(
-                          child: Center(child: Text('Aucun produit trouvé')),
-                        )
-                      : SliverPadding(
-                          padding: const EdgeInsets.all(16),
-                          sliver: _buildProductsGrid(filteredProducts),
-                        );
-            });
           },
           child: CustomScrollView(
             slivers: [
@@ -164,10 +142,14 @@ class _DiscoverPageState extends State<DiscoverPage> {
                   ? const SliverFillRemaining(
                       child: Center(child: CircularProgressIndicator()),
                     )
-                  : SliverPadding(
-                      padding: const EdgeInsets.all(16),
-                      sliver: _buildProductsGrid(filteredProducts),
-                    ),
+                  : filteredProducts.isEmpty
+                      ? const SliverFillRemaining(
+                          child: Center(child: Text('Aucun produit trouvé')),
+                        )
+                      : SliverPadding(
+                          padding: const EdgeInsets.all(16),
+                          sliver: _buildProductsGrid(filteredProducts),
+                        ),
             ],
           ),
         ),
@@ -175,6 +157,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     );
   }
 
+  // Widget pour l'en-tête de la page
   Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -215,6 +198,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     );
   }
 
+  // Widget pour la barre de recherche
   Widget _buildSearchBar() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -243,6 +227,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     );
   }
 
+  // Widget pour la bannière de vente
   Widget _buildSalesBanner() {
     return Container(
       width: double.infinity,
@@ -318,6 +303,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     );
   }
 
+  // Widget pour la section des catégories
   Widget _buildCategoriesSection() {
     return Column(
       children: [
@@ -355,6 +341,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     );
   }
 
+  // Widget pour un chip de catégorie
   Widget _buildCategoryChip(String label, {bool isSelected = false}) {
     return GestureDetector(
       onTap: () => _onCategorySelected(label),
@@ -375,6 +362,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
     );
   }
 
+  // Widget pour la grille des produits
   Widget _buildProductsGrid(List<Product> productsToDisplay) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -389,27 +377,53 @@ class _DiscoverPageState extends State<DiscoverPage> {
           return ProductCard(
             product: product,
             onFavoriteChanged: (productId, isFavorite) async {
-              await _firebaseService.updateProductFavoriteStatus(productId, isFavorite);
-              setState(() {
-                // Mettre à jour l'état local du produit
-                final updatedProduct = products.firstWhere((p) => p.id == productId);
-                updatedProduct.isFavorite = isFavorite;
-              });
-            },
-            onAddToCart: (productId) async {
               final userId = FirebaseAuth.instance.currentUser?.uid;
               if (userId == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Veuillez vous connecter pour ajouter des articles au panier')),
+                  const SnackBar(
+                    content: Text('Veuillez vous connecter pour ajouter aux favoris'),
+                  ),
                 );
                 return;
               }
 
               try {
-                await _firebaseService.addToCart(userId, productId);
+                if (isFavorite) {
+                  await FirebaseService().addToFavorites(userId, productId);
+                } else {
+                  await FirebaseService().removeFromFavorites(userId, productId);
+                }
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Erreur lors de l\'ajout au panier: $e')),
+                  SnackBar(
+                    content: Text('Erreur lors de la mise à jour des favoris: $e'),
+                  ),
+                );
+              }
+            },
+            onAddToCart: (productId) async {
+              final userId = FirebaseAuth.instance.currentUser?.uid;
+              if (userId == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Veuillez vous connecter pour ajouter des articles au panier'),
+                  ),
+                );
+                return;
+              }
+
+              try {
+                await FirebaseService().addToCart(userId, productId);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${product.name} ajouté au panier'),
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Erreur lors de l\'ajout au panier: $e'),
+                  ),
                 );
               }
             },

@@ -7,7 +7,6 @@ class Product {
   final String imagePath;
   final bool isOnSale;
   final double? salePrice;
-  bool isFavorite;
   final String category;
   int quantity; // Ajout de la quantité
 
@@ -20,7 +19,6 @@ class Product {
     required this.imagePath,
     this.isOnSale = false,
     this.salePrice,
-    this.isFavorite = false,
     required this.category,
     this.quantity = 1, // Initialisation de la quantité à 1
   });
@@ -35,7 +33,6 @@ class Product {
       imagePath: map['imagePath'] ?? 'assets/img/default.jpg',
       isOnSale: map['isOnSale'] as bool? ?? true,
       salePrice: (map['salePrice'] as num?)?.toDouble(),
-      isFavorite: map['isFavorite'] as bool? ?? false,
       category: map['category'] as String,
       quantity: map['quantity'] as int? ?? 1, // Charger la quantité depuis Firestore
     );
@@ -51,7 +48,6 @@ class Product {
       'imagePath': imagePath,
       'isOnSale': isOnSale,
       'salePrice': salePrice,
-      'isFavorite': isFavorite,
       'quantity': quantity, // Sauvegarder la quantité dans Firestore
     };
   }

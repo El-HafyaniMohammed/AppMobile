@@ -290,6 +290,24 @@ class _LoginContentState extends State<LoginContent> {
         });
       }
 
+      // Créer une collection `favorites` vide pour l'utilisateur
+      final favoritesSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .get();
+
+      if (favoritesSnapshot.docs.isEmpty) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('favorites')
+            .doc('initial')
+            .set({
+          'createdAt': DateTime.now(), // Optionnel : date de création des favoris
+        });
+      }
+
       // Récupérer les informations de l'utilisateur depuis Firestore
       final user = await UserModel.getUserFromFirestore(userId);
       if (user == null) {
@@ -630,6 +648,16 @@ class _SignupContentState extends State<SignupContent> {
           'createdAt': DateTime.now(), // Optionnel : date de création du panier
         });
 
+        // Créer une collection `favorites` vide pour l'utilisateur
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('favorites')
+            .doc('initial')
+            .set({
+          'createdAt': DateTime.now(), // Optionnel : date de création des favoris
+        });
+
         // Créer un nouvel utilisateur dans Firestore
         final newUser = UserModel.fromFirebaseUser(userCredential.user!);
         await newUser.saveToFirestore();
@@ -684,7 +712,6 @@ class _SignupContentState extends State<SignupContent> {
               );
             },
           );
-
           // Démarrer la vérification automatique
           _startEmailVerificationCheck(userCredential.user!);
         }

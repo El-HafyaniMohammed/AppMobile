@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
-import '../screens/Notification/Notification_Page.dart';
-import '../services/firebase_service.dart'; // Add this import
+import '../services/firebase_service.dart'; // Importez votre service Firebase
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/product.dart';
 import '../config/AppStyles.dart' as config;
+import '../config/AppColors.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
-  final Function(String productId, bool isFavorite) onFavoriteChanged;
-  final Function(String productId)
-      onAddToCart; // Nouvelle fonction pour ajouter au panier
+  final Function(String productId, bool isFavorite) onFavoriteChanged; // Ajout de la fonction de changement de favori
+  final Function(String productId) onAddToCart;
 
   const ProductCard({
     super.key,
     required this.product,
-    required this.onFavoriteChanged,
-    required this.onAddToCart, // Ajout du paramètre
+    required this.onFavoriteChanged, // Ajoutez ce paramètre
+    required this.onAddToCart,
   });
 
   @override
@@ -23,6 +22,75 @@ class ProductCard extends StatefulWidget {
 }
 
 class _ProductCardState extends State<ProductCard> {
+  bool _isFavorite = false; // État local pour gérer le favori
+  final FirebaseService _firebaseService = FirebaseService();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfFavorite(); // Vérifier si le produit est favori au chargement
+  }
+
+  // Vérifier si le produit est dans les favoris de l'utilisateur
+  Future<void> _checkIfFavorite() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      final isFavorite = await _firebaseService.isProductInFavorites(userId, widget.product.id);
+      setState(() {
+        _isFavorite = isFavorite;
+      });
+    }
+  }
+
+  // Gérer le clic sur le bouton favori
+  Future<void> _toggleFavorite() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez vous connecter pour ajouter aux favoris'),
+        ),
+      );
+      return;
+    }
+
+    final newFavoriteStatus = !_isFavorite;
+    setState(() {
+      _isFavorite = newFavoriteStatus; // Mettre à jour l'état local
+    });
+
+    try {
+      if (newFavoriteStatus) {
+        await _firebaseService.addToFavorites(userId, widget.product.id);
+      } else {
+        await _firebaseService.removeFromFavorites(userId, widget.product.id);
+      }
+
+      // Notifier le parent du changement
+      widget.onFavoriteChanged(widget.product.id, newFavoriteStatus);
+
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            newFavoriteStatus
+                ? '${widget.product.name} ajouté aux favoris'
+                : '${widget.product.name} retiré des favoris',
+          ),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isFavorite = !newFavoriteStatus; // Annuler le changement en cas d'erreur
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de la mise à jour des favoris: $e'),
+        ),
+      );
+    }
+  }
+
   // Fonction pour construire les étoiles du rating
   Widget _buildRatingStars(double rating) {
     return Row(
@@ -105,20 +173,10 @@ class _ProductCardState extends State<ProductCard> {
                   right: 8,
                   child: IconButton(
                     icon: Icon(
-                      widget.product.isFavorite
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color:
-                          widget.product.isFavorite ? Colors.red : Colors.grey,
+                      _isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: _isFavorite ? Colors.red : Colors.grey,
                     ),
-                    onPressed: () async {
-                      final newFavoriteStatus = !widget.product.isFavorite;
-                      await widget.onFavoriteChanged(
-                          widget.product.id, newFavoriteStatus);
-                      setState(() {
-                        widget.product.isFavorite = newFavoriteStatus;
-                      });
-                    },
+                    onPressed: _toggleFavorite,
                   ),
                 ),
               ],
@@ -182,33 +240,7 @@ class _ProductCardState extends State<ProductCard> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.add_shopping_cart_outlined),
-                  onPressed: () async {
-                    final userId = FirebaseAuth.instance.currentUser?.uid;
-                    if (userId == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(
-                                'Veuillez vous connecter pour ajouter des articles au panier')),
-                      );
-                      return;
-                    }
-
-                    try {
-                      await FirebaseService()
-                          .addToCart(userId, widget.product.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(
-                                '${widget.product.name} ajouté au panier')),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content:
-                                Text('Erreur lors de l\'ajout au panier: $e')),
-                      );
-                    }
-                  },
+                  onPressed: () => widget.onAddToCart(widget.product.id),
                 ),
               ],
             ),

@@ -3,6 +3,7 @@ import 'package:project/main.dart';
 import 'package:project/models/product.dart';
 import 'package:project/services/firebase_service.dart'; // Adjust the path as necessary
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
 
@@ -12,6 +13,7 @@ class FavoriteScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoriteScreen> {
   List<Product> favoriteProducts = [];
+  // ignore: unused_field
   final FirebaseService _firebaseService = FirebaseService();
   bool _isGridView = true;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -19,9 +21,27 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
   bool _isLoading = false;
 
   @override
+  @override
   void initState() {
     super.initState();
-    _loadFavoriteProducts();
+    _loadFavoriteProducts(); // Charger les produits favoris au démarrage
+  }
+
+  Future<void> _loadFavoriteProducts() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      setState(() => _isLoading = true);
+      try {
+        final products = await _firebaseService.getFavoriteProducts(userId);
+        setState(() {
+          favoriteProducts = products;
+          _isLoading = false;
+        });
+      } catch (e) {
+        print('Erreur lors du chargement des favoris: $e');
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> updateProductFavoriteStatus(String productId, bool isFavorite) async {
@@ -29,26 +49,9 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
       await _firestore.collection('products').doc(productId).update({
         'isFavorite': isFavorite,
       });
-      // ignore: avoid_print
       print('Statut favori mis à jour pour le produit $productId: $isFavorite');
     } catch (e) {
-      // ignore: avoid_print
       print('Erreur lors de la mise à jour du statut favori: $e');
-    }
-  }
-
-
-   Future<void> _loadFavoriteProducts() async {
-    setState(() => _isLoading = true);
-    try {
-      final fetchedProducts = await _firebaseService.getFavoriteProducts();
-      setState(() {
-        favoriteProducts = fetchedProducts;
-      });
-    } catch (e) {
-      print('Erreur lors du chargement des produits favoris: $e');
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
@@ -80,29 +83,6 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
     // Simuler un chargement
     await Future.delayed(const Duration(seconds: 1));
     setState(() => _isLoading = false);
-  }
-
-  void removeFromFavorites(String productId) async {
-    try {
-      await _firebaseService.updateProductFavoriteStatus(productId, false);
-      await _loadFavoriteProducts(); // Rafraîchir la liste après la suppression
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Removed from favorites'),
-          action: SnackBarAction(
-            label: 'UNDO',
-            onPressed: () async {
-              await _firebaseService.updateProductFavoriteStatus(productId, true);
-              await _loadFavoriteProducts(); // Rafraîchir la liste après l'annulation
-            },
-          ),
-        ),
-      );
-    } catch (e) {
-      // ignore: avoid_print
-      print('Erreur lors de la suppression des favoris: $e');
-    }
   }
 
   void clearFavorites() {
@@ -489,7 +469,20 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
           Icons.favorite,
           color: Colors.red,
         ),
-        onPressed: () => removeFromFavorites(product.id),
+        onPressed: () async {
+          // Mettre à jour le statut favori dans Firestore
+          await updateProductFavoriteStatus(product.id, false);
+
+          // Mettre à jour la liste locale des favoris
+          setState(() {
+            removeFromFavorites(FirebaseAuth.instance.currentUser!.uid, product.id);
+          });
+
+          // Afficher un message à l'utilisateur
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${product.name} removed from favorites')),
+          );
+        },
       ),
     );
   }
@@ -556,6 +549,18 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
           ),
       ],
     );
+  }
+
+  Future<void> removeFromFavorites(String userId, String productId) async {
+    try {
+      await _firestore.collection('users').doc(userId).collection('favorites').doc(productId).delete();
+      setState(() {
+        favoriteProducts.removeWhere((product) => product.id == productId);
+      });
+      print('Produit $productId supprimé des favoris');
+    } catch (e) {
+      print('Erreur lors de la suppression du produit des favoris: $e');
+    }
   }
 
   Widget _buildAddToCartButton() {

@@ -33,38 +33,92 @@ class FirebaseService {
     }
   }
 
-  Future<List<Product>> getFavoriteProducts() async {
+  // Ajouter un produit au favorite
+  Future<void> addToFavorites(String userId, String productId) async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('products')
-          .where('isFavorite', isEqualTo: true)
+      // Récupérer les informations du produit à partir de la collection 'products'
+      final productDoc = await _firestore.collection('products').doc(productId).get();
+
+      if (productDoc.exists) {
+        final productData = productDoc.data(); // Récupérer les données du produit
+
+        // Ajouter le produit avec toutes ses informations dans la collection 'favorites'
+        await _firestore
+            .collection('users')
+            .doc(userId)
+            .collection('favorites')
+            .doc(productId)
+            .set({
+          ...productData!, // Spread operator pour inclure toutes les données du produit
+          'addedAt': DateTime.now(), // Ajouter un timestamp pour la date d'ajout
+        });
+      } else {
+        // ignore: avoid_print
+        print('Produit non trouvé');
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('Erreur lors de l\'ajout aux favoris: $e');
+      rethrow;
+    }
+  }
+  // Supprimer un remove du favorite
+  Future<void> removeFromFavorites(String userId, String productId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc(productId)
+          .delete();
+    } catch (e) {
+      // ignore: avoid_print
+      print('Erreur lors de la suppression des favoris: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> isProductInFavorites(String userId, String productId) async {
+  try {
+    final doc = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('favorites')
+        .doc(productId)
+        .get();
+    return doc.exists;
+  } catch (e) {
+    print('Erreur lors de la vérification des favoris: $e');
+    return false;
+  }
+}
+  // Récupérer les produits favoris
+  Future<List<Product>> getFavoriteProducts(String userId) async {
+    try {
+      final favoritesSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
           .get();
-      return querySnapshot.docs.map((doc) {
+
+      final favoriteProductIds =
+          favoritesSnapshot.docs.map((doc) => doc.id).toList();
+
+      final productsSnapshot = await _firestore
+          .collection('products')
+          .where(FieldPath.documentId, whereIn: favoriteProductIds)
+          .get();
+
+      return productsSnapshot.docs.map((doc) {
         final data = doc.data();
         return Product.fromMap(data);
       }).toList();
     } catch (e) {
-      // ignore: avoid_print
       print('Erreur lors de la récupération des produits favoris: $e');
       return [];
     }
   }
-
-  Future<void> updateProductFavoriteStatus(
-      String productId, bool isFavorite) async {
-    try {
-      await _firestore.collection('products').doc(productId).update({
-        'isFavorite': isFavorite,
-      });
-      // ignore: avoid_print
-      print('Statut favori mis à jour pour le produit $productId: $isFavorite');
-    } catch (e) {
-      // ignore: avoid_print
-      print('Erreur lors de la mise à jour du statut favori: $e');
-    }
-  }
-
-  // Récupérer les informations d'un produit par son ID
+    // Récupérer les informations d'un produit par son ID
   Future<Map<String, dynamic>?> getProductById(String productId) async {
     try {
       final doc = await _firestore.collection('products').doc(productId).get();
@@ -77,9 +131,9 @@ class FirebaseService {
       return null;
     }
   }
-
    // Ajouter un produit au panier
   Future<void> addToCart(String userId, String productId) async {
+    
     final productData = await getProductById(productId);
 
     if (productData != null) {
@@ -107,7 +161,6 @@ class FirebaseService {
       print('Produit non trouvé');
     }
   }
-
   // Récupérer les articles du panier
   Future<List<CartItem>> getCartItems(String userId) async {
     try {
