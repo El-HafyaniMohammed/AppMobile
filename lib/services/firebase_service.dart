@@ -5,64 +5,69 @@ import '../models/cart_item.dart';
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // Récupérer tous les produits
   Future<List<Product>> getProducts() async {
     try {
-      final querySnapshot =
-          await FirebaseFirestore.instance.collection('products').get();
+      final querySnapshot = await _firestore.collection('products').get();
       return querySnapshot.docs.map((doc) {
         final data = doc.data();
-        return Product.fromMap(
-            data); // Assurez-vous que `fromMap` gère les nulls
+        // ignore: unnecessary_null_comparison
+        if (data != null) {
+          return Product.fromMap(data);
+        } else {
+          throw Exception('Product data is null');
+        }
       }).toList();
     } catch (e) {
-      // ignore: avoid_print
-      print('Error fetching products: $e');
-      return []; // Retourne une liste vide en cas d'erreur
+      print('Erreur lors de la récupération des produits: $e');
+      return [];
     }
   }
 
+  // Récupérer les catégories
   Future<List<String>> getCategories() async {
     try {
-      final querySnapshot =
-          await FirebaseFirestore.instance.collection('categories').get();
-      return querySnapshot.docs.map((doc) => doc['name'] as String).toList();
+      final querySnapshot = await _firestore.collection('categories').get();
+      return querySnapshot.docs.map((doc) {
+        final name = doc['name'] as String?;
+        return name ?? 'Unnamed Category';
+      }).toList();
     } catch (e) {
-      // ignore: avoid_print
       print('Erreur lors de la récupération des catégories: $e');
       return [];
     }
   }
 
-  // Ajouter un produit au favorite
+  // Ajouter un produit aux favoris
   Future<void> addToFavorites(String userId, String productId) async {
     try {
-      // Récupérer les informations du produit à partir de la collection 'products'
       final productDoc = await _firestore.collection('products').doc(productId).get();
 
       if (productDoc.exists) {
-        final productData = productDoc.data(); // Récupérer les données du produit
-
-        // Ajouter le produit avec toutes ses informations dans la collection 'favorites'
-        await _firestore
-            .collection('users')
-            .doc(userId)
-            .collection('favorites')
-            .doc(productId)
-            .set({
-          ...productData!, // Spread operator pour inclure toutes les données du produit
-          'addedAt': DateTime.now(), // Ajouter un timestamp pour la date d'ajout
-        });
+        final productData = productDoc.data();
+        if (productData != null) {
+          await _firestore
+              .collection('users')
+              .doc(userId)
+              .collection('favorites')
+              .doc(productId)
+              .set({
+            ...productData,
+            'addedAt': DateTime.now(),
+          });
+        } else {
+          print('Product data is null');
+        }
       } else {
-        // ignore: avoid_print
         print('Produit non trouvé');
       }
     } catch (e) {
-      // ignore: avoid_print
       print('Erreur lors de l\'ajout aux favoris: $e');
       rethrow;
     }
   }
-  // Supprimer un remove du favorite
+
+  // Supprimer un produit des favoris
   Future<void> removeFromFavorites(String userId, String productId) async {
     try {
       await _firestore
@@ -72,26 +77,27 @@ class FirebaseService {
           .doc(productId)
           .delete();
     } catch (e) {
-      // ignore: avoid_print
       print('Erreur lors de la suppression des favoris: $e');
       rethrow;
     }
   }
 
+  // Vérifier si un produit est dans les favoris
   Future<bool> isProductInFavorites(String userId, String productId) async {
-  try {
-    final doc = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('favorites')
-        .doc(productId)
-        .get();
-    return doc.exists;
-  } catch (e) {
-    print('Erreur lors de la vérification des favoris: $e');
-    return false;
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc(productId)
+          .get();
+      return doc.exists;
+    } catch (e) {
+      print('Erreur lors de la vérification des favoris: $e');
+      return false;
+    }
   }
-}
+
   // Récupérer les produits favoris
   Future<List<Product>> getFavoriteProducts(String userId) async {
     try {
@@ -101,29 +107,41 @@ class FirebaseService {
           .collection('favorites')
           .get();
 
-      final favoriteProductIds =
-          favoritesSnapshot.docs.map((doc) => doc.id).toList();
+      final favoriteProductIds = favoritesSnapshot.docs.map((doc) => doc.id).toList();
 
-      final productsSnapshot = await _firestore
-          .collection('products')
-          .where(FieldPath.documentId, whereIn: favoriteProductIds)
-          .get();
+      if (favoriteProductIds.isNotEmpty) {
+        final productsSnapshot = await _firestore
+            .collection('products')
+            .where(FieldPath.documentId, whereIn: favoriteProductIds)
+            .get();
 
-      return productsSnapshot.docs.map((doc) {
-        final data = doc.data();
-        return Product.fromMap(data);
-      }).toList();
+        return productsSnapshot.docs.map((doc) {
+          final data = doc.data();
+          // ignore: unnecessary_null_comparison
+          if (data != null) {
+            return Product.fromMap(data);
+          } else {
+            throw Exception('Product data is null');
+          }
+        }).toList();
+      } else {
+        return [];
+      }
     } catch (e) {
       print('Erreur lors de la récupération des produits favoris: $e');
       return [];
     }
   }
-    // Récupérer les informations d'un produit par son ID
-  Future<Map<String, dynamic>?> getProductById(String productId) async {
+
+  // Récupérer les informations d'un produit par son ID
+  Future<Product?> getProductById(String productId) async {
     try {
       final doc = await _firestore.collection('products').doc(productId).get();
       if (doc.exists) {
-        return doc.data();
+        final data = doc.data();
+        if (data != null) {
+          return Product.fromMap(data);
+        }
       }
       return null;
     } catch (e) {
@@ -131,35 +149,39 @@ class FirebaseService {
       return null;
     }
   }
-   // Ajouter un produit au panier
+
+  // Ajouter un produit au panier
   Future<void> addToCart(String userId, String productId) async {
-    final productData = await getProductById(productId);
+    try {
+      final cartDoc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .doc(productId)
+          .get();
 
-    if (productData != null) {
-      final cartItem = CartItem(
-        productId: productId,
-        name: productData['name'] ?? '',
-        image: productData['imagePath'] ?? '',
-        price: productData['price']?.toDouble() ?? 0.0,
-        isOnSale: productData['isOnSale'] as bool? ?? false,
-        quantity: 1, // Quantité par défaut
-        selectedColor: 'Black', // Couleur par défaut
-      );
-
-      try {
+      if (cartDoc.exists) {
+        final currentQuantity = cartDoc.data()?['quantity'] ?? 0;
+        await cartDoc.reference.update({
+          'quantity': currentQuantity + 1,
+        });
+      } else {
         await _firestore
             .collection('users')
             .doc(userId)
             .collection('cart')
-            .doc(productId) // Utilisez l'ID du produit comme ID du document
-            .set(cartItem.toMap());
-      } catch (e) {
-        print('Erreur lors de l\'ajout au panier: $e');
+            .doc(productId)
+            .set({
+          'productId': productId,
+          'quantity': 1,
+          'selectedColor': 'Black',
+        });
       }
-    } else {
-      print('Produit non trouvé');
+    } catch (e) {
+      print('Erreur lors de l\'ajout au panier: $e');
     }
   }
+
   // Récupérer les articles du panier
   Future<List<CartItem>> getCartItems(String userId) async {
     try {
@@ -169,15 +191,27 @@ class FirebaseService {
           .collection('cart')
           .get();
 
-      return cartSnapshot.docs
-          .where((doc) => doc.id != 'initial') // Filtre les documents avec l'ID 'initial'
-          .map((doc) {
-            final data = doc.data();
-            // ignore: unnecessary_null_comparison
-            if (data == null) throw Exception('Données du panier non valides');
-            return CartItem.fromMap(data);
-          })
-          .toList();
+      final cartItems = <CartItem>[];
+
+      for (final doc in cartSnapshot.docs) {
+        final cartData = doc.data();
+        final productId = cartData['productId'] as String?;
+
+        if (productId != null) {
+          final product = await getProductById(productId);
+
+          if (product != null) {
+            final cartItem = CartItem(
+              product: product,
+              quantity: cartData['quantity'] as int? ?? 1,
+              selectedColor: cartData['selectedColor'] as String? ?? 'Black',
+            );
+            cartItems.add(cartItem);
+          }
+        }
+      }
+
+      return cartItems;
     } catch (e) {
       print('Erreur lors de la récupération du panier: $e');
       rethrow;
@@ -214,47 +248,6 @@ class FirebaseService {
     } catch (e) {
       print('Erreur lors de la suppression du panier: $e');
       rethrow;
-    }
-  }
-
-  Future<void> createCartForUser(String userId) async {
-    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-    // Vérifier si l'utilisateur a déjà un panier
-    final cartSnapshot = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('cart')
-        .get();
-
-    // Si l'utilisateur n'a pas de panier, en créer un vide
-    if (cartSnapshot.docs.isEmpty) {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('cart')
-          .doc('initial')
-          .set({
-        'createdAt': DateTime.now(), // Optionnel : date de création du panier
-      });
-    }
-  }
-
-  Future<void> cleanInitialCartDocuments(String userId) async {
-    try {
-      final cartSnapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('cart')
-          .get();
-
-      for (final doc in cartSnapshot.docs) {
-        if (doc.id == 'initial') {
-          await doc.reference.delete(); // Supprime le document 'initial'
-        }
-      }
-    } catch (e) {
-      print('Erreur lors du nettoyage des documents "initial": $e');
     }
   }
 }

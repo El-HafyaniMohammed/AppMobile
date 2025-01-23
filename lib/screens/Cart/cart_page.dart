@@ -22,22 +22,30 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
   double discountPercentage = 10;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseService _firebaseService = FirebaseService();
-  final String userId = FirebaseAuth.instance.currentUser!.uid; // ID de l'utilisateur
+  String? userId; // ID de l'utilisateur
   bool isLoading = false; // Indicateur de chargement
 
   double get subtotal =>
-      cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
+    cartItems.fold(0, (sum, item) => sum + (item.displayPrice * item.quantity));
   double get discount => subtotal * (discountPercentage / 100);
   double get total => subtotal + deliveryFee - discount;
 
   @override
+  @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _loadCartItems(); // Charger les articles du panier depuis Firebase
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      userId = user.uid;
+      _loadCartItems(); // Charger les articles du panier
+    } else {
+      // Gérer le cas où l'utilisateur n'est pas connecté
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Vous devez être connecté pour voir votre panier.")),
+        );
+      });
+    }
   }
 
   @override
@@ -48,16 +56,17 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
 
   // Charger les articles du panier depuis Firebase
   Future<void> _loadCartItems() async {
+    if (userId == null) return;
+
     setState(() {
       isLoading = true;
     });
     try {
-      final items = await _firebaseService.getCartItems(userId); // Utiliser FirebaseService
+      final items = await _firebaseService.getCartItems(userId!); // Utiliser le ! ici car userId est vérifié
       setState(() {
         cartItems = items;
       });
     } catch (e) {
-      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur lors du chargement du panier: $e')),
       );
@@ -67,7 +76,6 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
       });
     }
   }
-
   // Mettre à jour la quantité d'un article dans Firebase
   void updateQuantity(int index, bool increase) async {
     final cartItem = cartItems[index];
@@ -83,7 +91,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
           .collection('users')
           .doc(userId)
           .collection('cart')
-          .doc(cartItem.productId)
+          .doc(cartItem.product.id)
           .update({'quantity': newQuantity});
       setState(() {
         cartItems[index].quantity = newQuantity;
@@ -112,7 +120,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
           .collection('users')
           .doc(userId)
           .collection('cart')
-          .doc(cartItem.productId)
+          .doc(cartItem.product.id)
           .delete();
       setState(() {
         cartItems.removeAt(index);
@@ -279,7 +287,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                   ),
                                   padding: const EdgeInsets.all(12),
                                   child: Image.asset(
-                                    item.image,
+                                    item.product.imagePath,
                                     fit: BoxFit.contain,
                                     errorBuilder: (context, error, stackTrace) {
                                       return const Icon(Icons.image_not_supported);
@@ -296,7 +304,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                         children: [
                                           Expanded(
                                             child: Text(
-                                              item.name,
+                                              item.product.name,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w600,
                                                 fontSize: 16,
@@ -324,7 +332,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            '${item.price.toStringAsFixed(2)} Dh',
+                                            '${item.displayPrice.toStringAsFixed(2)} Dh',
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 16,

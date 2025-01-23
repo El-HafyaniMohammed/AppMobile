@@ -23,7 +23,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String _selectedPaymentMethod = 'card';
   
   double get subtotal =>
-      widget.cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
+      widget.cartItems.fold(0, (sum, item) => sum + (item.displayPrice * item.quantity));
   double deliveryFee = 50.0;
   double discountPercentage = 10;
   double get discount => subtotal * (discountPercentage / 100);
@@ -175,14 +175,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Image.asset(
-                  item.image,
+                  item.product.imagePath,
                   fit: BoxFit.contain,
                 ),
               ),
-              title: Text(item.name),
+              title: Text(item.product.name),
               subtitle: Text('Quantity: ${item.quantity}'),
               trailing: Text(
-                '${(item.price * item.quantity).toStringAsFixed(2)} Dh',
+                '${(item.displayPrice ).toStringAsFixed(2)} Dh',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                 ),
