@@ -25,16 +25,16 @@ class Product {
 
   factory Product.fromMap(Map<String, dynamic> map) {
     return Product(
-      id: map['id'] ?? 'Unknown ID',
-      name: map['name'] ?? 'Unknown Product',
-      brand: map['brand'] ?? 'Unknown Brand',
-      price: (map['price'] as num?)?.toDouble() ?? 0.0,
-      rating: (map['rating'] as num?)?.toDouble() ?? 0.0,
-      imagePath: map['imagePath'] ?? 'assets/img/default.jpg',
-      isOnSale: map['isOnSale'] as bool? ?? true,
+      id: map['id'] ,
+      name: map['name'] ,
+      brand: map['brand'] ,
+      price: (map['price'] as num).toDouble(),
+      rating: (map['rating'] as num).toDouble() ,
+      imagePath: map['imagePath'],
+      isOnSale: map['isOnSale'] ,
       salePrice: (map['salePrice'] as num?)?.toDouble(),
       category: map['category'] as String,
-      quantity: map['quantity'] as int? ?? 1, // Charger la quantité depuis Firestore
+      quantity: map['quantity'] as int, // Charger la quantité depuis Firestore
     );
   }
 

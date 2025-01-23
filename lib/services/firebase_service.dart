@@ -133,7 +133,6 @@ class FirebaseService {
   }
    // Ajouter un produit au panier
   Future<void> addToCart(String userId, String productId) async {
-    
     final productData = await getProductById(productId);
 
     if (productData != null) {
@@ -152,7 +151,7 @@ class FirebaseService {
             .collection('users')
             .doc(userId)
             .collection('cart')
-            .doc(productId)
+            .doc(productId) // Utilisez l'ID du produit comme ID du document
             .set(cartItem.toMap());
       } catch (e) {
         print('Erreur lors de l\'ajout au panier: $e');
@@ -170,13 +169,15 @@ class FirebaseService {
           .collection('cart')
           .get();
 
-      return cartSnapshot.docs.map((doc) {
-        final data = doc.data();
-        // ignore: unnecessary_null_comparison
-        if (data == null) throw Exception('Données du panier non valides');
-        return CartItem.fromMap(
-            data); // Assurez-vous que CartItem a une méthode fromMap
-      }).toList();
+      return cartSnapshot.docs
+          .where((doc) => doc.id != 'initial') // Filtre les documents avec l'ID 'initial'
+          .map((doc) {
+            final data = doc.data();
+            // ignore: unnecessary_null_comparison
+            if (data == null) throw Exception('Données du panier non valides');
+            return CartItem.fromMap(data);
+          })
+          .toList();
     } catch (e) {
       print('Erreur lors de la récupération du panier: $e');
       rethrow;
@@ -236,6 +237,24 @@ class FirebaseService {
           .set({
         'createdAt': DateTime.now(), // Optionnel : date de création du panier
       });
+    }
+  }
+
+  Future<void> cleanInitialCartDocuments(String userId) async {
+    try {
+      final cartSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .get();
+
+      for (final doc in cartSnapshot.docs) {
+        if (doc.id == 'initial') {
+          await doc.reference.delete(); // Supprime le document 'initial'
+        }
+      }
+    } catch (e) {
+      print('Erreur lors du nettoyage des documents "initial": $e');
     }
   }
 }
