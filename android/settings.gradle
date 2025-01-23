@@ -14,9 +14,6 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
-    plugins {
-        id "org.jetbrains.kotlin.android" version "1.9.22"  // Update to the same version
-    }
 }
 
 plugins {

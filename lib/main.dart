@@ -12,12 +12,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: FirebaseOptions(
-      apiKey: "AIzaSyDPUMpNI11BCFvrnwrkrgj7SEZJTy2_2Vw",
-      authDomain: "e-commerce-8e85a.firebaseapp.com",
-      projectId: "e-commerce-8e85a",
-      storageBucket: "e-commerce-8e85a.firebasestorage.app",
-      messagingSenderId: "354407730492",
-      appId: "1:354407730492:web:40ab97e021526ed5732239"
+      apiKey: "AIzaSyC7IbWkaVJFqL90nL_ZTco1d9fuUSfMtXY", // Clé API de votre configuration Firebase
+      appId: "1:354407730492:android:395e2880c44f6601732239", // ID de l'application Android
+      messagingSenderId: "354407730492", // Numéro de projet
+      projectId: "e-commerce-8e85a", // ID du projet Firebase
+      storageBucket: "e-commerce-8e85a.firebasestorage.app", // Bucket de stockage
     ),
   );
   runApp(const MyApp());
@@ -34,12 +33,12 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF4CAF50),
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Remplacez par un UserModel valide
+      home: MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)),
       routes: {
-        '/main': (context) => MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Remplacez par un UserModel valide
+        '/main': (context) => MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)),
         '/login': (context) => const LoginScreen(),
         '/Home': (context) => const HomeScreen(),
-        '/profile': (context) => ProfilePage(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)), // Remplacez par un UserModel valide
+        '/profile': (context) => ProfilePage(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)),
       },
     );
   }
