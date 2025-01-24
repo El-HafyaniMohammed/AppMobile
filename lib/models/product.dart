@@ -51,6 +51,8 @@ class Product {
       deliveryTime: (map['deliveryTime'] as num).toDouble(),
       colors: List<String>.from(map['colors'] ?? []), // Charger les couleurs depuis Firestore
       sizes: List<String>.from(map['sizes'] ?? []), // Charger les tailles depuis Firestore
+      sizePrices: Map<String, double>.from(map['sizePrices'] ?? {}), // Charger les prix des tailles depuis Firestore
+      colorPrices: Map<String, double>.from(map['colorPrices'] ?? {}), // Charger les prix des couleurs depuis Firestore
     );
   }
 
@@ -70,6 +72,11 @@ class Product {
       'deliveryTime': deliveryTime,
       'colors': colors, // Sérialiser les couleurs
       'sizes': sizes, // Sérialiser les tailles
+      'sizePrices': sizePrices, // Sérialiser les prix des tailles
+      'colorPrices': colorPrices, // Sérialiser les prix des couleurs
     };
+  }
+  get displayPrice {
+    return isOnSale ? (salePrice ?? price) : price;
   }
 }

@@ -133,7 +133,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final totalPrice = widget.product.price * _quantity;
+    final totalPrice = widget.product.displayPrice * _quantity;
 
     return Scaffold(
       backgroundColor: Colors.white,
