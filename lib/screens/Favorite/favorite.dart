@@ -432,7 +432,7 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       _buildPriceColumn(product),
-                      _buildAddToCartButton(),
+                      _buildAddToCartButton(product),
                     ],
                   ),
                 ],
@@ -516,7 +516,7 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _buildPriceColumn(product),
-        _buildAddToCartButton(),
+        _buildAddToCartButton(product),
       ],
     );
   }
@@ -563,14 +563,36 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
     }
   }
 
-  Widget _buildAddToCartButton() {
+  Widget _buildAddToCartButton(Product product) {
     return ElevatedButton(
-      onPressed: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Added to cart'),
-          ),
-        );
+      onPressed: () async {
+        if (product.sizes.isNotEmpty || product.colors.isNotEmpty) {
+          await _showSizeAndColorDialog(product);
+        } else {
+          final userId = FirebaseAuth.instance.currentUser?.uid;
+          if (userId == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please log in to add to cart')),
+            );
+            return;
+          }
+
+          try {
+            await _firebaseService.addToCart(
+              userId,
+              product.id,
+              quantity: 1,
+            );
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${product.name} added to cart')),
+            );
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error adding to cart: $e')),
+            );
+          }
+        }
       },
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -582,8 +604,95 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
       child: const Text(
         'Add to Cart',
         style: TextStyle(fontSize: 12, color: Colors.white),
-        
       ),
+    );
+  }
+
+  Future<void> _showSizeAndColorDialog(Product product) async {
+    String? selectedSize;
+    String? selectedColor;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Select Options'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (product.sizes.isNotEmpty) ...[
+                    const Text('Select Size'),
+                    DropdownButton<String>(
+                      value: selectedSize,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedSize = value; // Mettre à jour la taille sélectionnée
+                        });
+                      },
+                      items: product.sizes.map((size) {
+                        return DropdownMenuItem(
+                          value: size,
+                          child: Text(size),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                  if (product.colors.isNotEmpty) ...[
+                    const Text('Select Color'),
+                    DropdownButton<String>(
+                      value: selectedColor,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedColor = value; // Mettre à jour la couleur sélectionnée
+                        });
+                      },
+                      items: product.colors.map((color) {
+                        return DropdownMenuItem(
+                          value: color,
+                          child: Text(color),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final userId = FirebaseAuth.instance.currentUser?.uid;
+                    if (userId != null) {
+                      try {
+                        await _firebaseService.addToCart(
+                          userId,
+                          product.id,
+                          quantity: 1,
+                          size: selectedSize,
+                          color: selectedColor,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('${product.name} added to cart')),
+                        );
+                        Navigator.pop(context);
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error adding to cart: $e')),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Add to Cart'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
