@@ -182,7 +182,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               title: Text(item.product.name),
               subtitle: Text('Quantity: ${item.quantity}'),
               trailing: Text(
-                '${(item.displayPrice ).toStringAsFixed(2)} Dh',
+                '${(item.displayPrice * item.quantity).toStringAsFixed(2)} Dh',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                 ),

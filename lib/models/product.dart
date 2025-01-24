@@ -12,7 +12,9 @@ class Product {
   final String description;
   double deliveryTime;
   final List<String> colors; // Tableau de couleurs disponibles
-  final List<String> sizes; // Tableau de tailles disponibles
+  final List<String> sizes;
+  final Map<String, double> sizePrices; // Map of sizes to their prices
+  final Map<String, double> colorPrices; // Map of colors to their prices // Tableau de tailles disponibles
 
   Product({
     required this.id,
@@ -29,6 +31,8 @@ class Product {
     required this.deliveryTime,
     this.colors = const [], // Initialisation par défaut d'un tableau vide
     this.sizes = const [], // Initialisation par défaut d'un tableau vide
+    this.sizePrices = const {}, // Initialisation par défaut d'une map vide
+    this.colorPrices = const {}, // Initialisation par défaut d'une map vide
   });
 
   factory Product.fromMap(Map<String, dynamic> map) {
