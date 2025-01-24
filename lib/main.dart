@@ -33,13 +33,26 @@ class MyApp extends StatelessWidget {
         primaryColor: const Color(0xFF4CAF50),
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)),
+      home: MainScreen(user: _getCurrentUser()),
       routes: {
-        '/main': (context) => MainScreen(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)),
+        '/main': (context) => MainScreen(user: _getCurrentUser()),
         '/login': (context) => const LoginScreen(),
         '/Home': (context) => const HomeScreen(),
-        '/profile': (context) => ProfilePage(user: UserModel(uid: 'some-uid', email: 'user@example.com', isEmailVerified: true)),
+        '/profile': (context) => ProfilePage(user: _getCurrentUser()),
       },
     );
+  }
+  UserModel _getCurrentUser() {
+    User? firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      return UserModel(
+        uid: firebaseUser.uid,
+        email: firebaseUser.email ?? 'no-email',
+        isEmailVerified: firebaseUser.emailVerified,
+      );
+    } else {
+      // Retourner un utilisateur par défaut ou gérer le cas où l'utilisateur n'est pas connecté
+      return UserModel(uid: 'no-uid', email: 'no-email', isEmailVerified: false);
+    }
   }
 }
