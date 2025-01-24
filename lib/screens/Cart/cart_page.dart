@@ -193,6 +193,46 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
     );
   }
 
+  void _updateItemSize(int index, String newSize) async {
+    final cartItem = cartItems[index];
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .doc(cartItem.product.id)
+          .update({'size': newSize});
+      
+      setState(() {
+        cartItems[index].selectedSize = newSize;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating size: $e')),
+      );
+    }
+  }
+
+  void _updateItemColor(int index, String newColor) async {
+    final cartItem = cartItems[index];
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('cart')
+          .doc(cartItem.product.id)
+          .update({'color': newColor});
+      
+      setState(() {
+        cartItems[index].selectedColor = newColor;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating color: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -320,26 +360,37 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                         ],
                                       ),
                                       const SizedBox(height: 8),
-                                      if(item.product.sizes.isNotEmpty) ...[
-                                        Text(
-                                          'Size : ${item.selectedSize}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 14,
-                                          ),
+                                      if(item.product.sizes.isNotEmpty) 
+                                        DropdownButton<String>(
+                                          value: item.selectedSize,
+                                          items: item.product.sizes.map((size) => 
+                                            DropdownMenuItem(
+                                              value: size,
+                                              child: Text(size)
+                                            )
+                                          ).toList(),
+                                          onChanged: (newSize) {
+                                            if (newSize != null) {
+                                              _updateItemSize(index, newSize);
+                                            }
+                                          },
                                         ),
-                                        const SizedBox(height: 8),
-                                      ],
-                                      if(item.product.colors.isNotEmpty) ...[
-                                        Text(
-                                          'Color : ${item.selectedColor}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 14,
-                                          ),
+
+                                      if(item.product.colors.isNotEmpty) 
+                                        DropdownButton<String>(
+                                          value: item.selectedColor,
+                                          items: item.product.colors.map((color) => 
+                                            DropdownMenuItem(
+                                              value: color,
+                                              child: Text(color)
+                                            )
+                                          ).toList(),
+                                          onChanged: (newColor) {
+                                            if (newColor != null) {
+                                              _updateItemColor(index, newColor);
+                                            }
+                                          },
                                         ),
-                                        const SizedBox(height: 8),
-                                      ],
                                       const SizedBox(height: 12),
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
