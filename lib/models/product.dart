@@ -8,7 +8,8 @@ class Product {
   final bool isOnSale;
   final double? salePrice;
   final String category;
-  int quantity; // Ajout de la quantité
+  int quantity; 
+  final String description;
 
   Product({
     required this.id,
@@ -21,6 +22,7 @@ class Product {
     this.salePrice,
     required this.category,
     this.quantity = 1, // Initialisation de la quantité à 1
+    required this.description,
   });
 
   factory Product.fromMap(Map<String, dynamic> map) {
@@ -34,7 +36,8 @@ class Product {
       isOnSale: map['isOnSale'] ,
       salePrice: (map['salePrice'] as num?)?.toDouble(),
       category: map['category'] as String,
-      quantity: map['quantity'] as int, // Charger la quantité depuis Firestore
+      quantity: map['quantity'] as int,
+      description: map['description'] // Charger la quantité depuis Firestore
     );
   }
 
@@ -48,7 +51,8 @@ class Product {
       'imagePath': imagePath,
       'isOnSale': isOnSale,
       'salePrice': salePrice,
-      'quantity': quantity, // Sauvegarder la quantité dans Firestore
+      'quantity': quantity,
+      'description':description
     };
   }
 }

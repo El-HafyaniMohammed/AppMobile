@@ -5,6 +5,7 @@ import '../../config/AppStyles.dart' as config;
 import '../../widgets/product_card.dart';
 import '../../services/firebase_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'des.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -363,7 +364,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 
   // Widget pour la grille des produits
-  Widget _buildProductsGrid(List<Product> productsToDisplay) {
+   Widget _buildProductsGrid(List<Product> productsToDisplay) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -374,59 +375,70 @@ class _DiscoverPageState extends State<DiscoverPage> {
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           final product = productsToDisplay[index];
-          return ProductCard(
-            product: product,
-            onFavoriteChanged: (productId, isFavorite) async {
-              final userId = FirebaseAuth.instance.currentUser?.uid;
-              if (userId == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Veuillez vous connecter pour ajouter aux favoris'),
-                  ),
-                );
-                return;
-              }
-
-              try {
-                if (isFavorite) {
-                  await FirebaseService().addToFavorites(userId, productId);
-                } else {
-                  await FirebaseService().removeFromFavorites(userId, productId);
+          return GestureDetector(
+            onTap: () {
+              // Naviguer vers la page de description du produit
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductDetailPage(product: product),
+                ),
+              );
+            },
+            child: ProductCard(
+              product: product,
+              onFavoriteChanged: (productId, isFavorite) async {
+                final userId = FirebaseAuth.instance.currentUser?.uid;
+                if (userId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Veuillez vous connecter pour ajouter aux favoris'),
+                    ),
+                  );
+                  return;
                 }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Erreur lors de la mise à jour des favoris: $e'),
-                  ),
-                );
-              }
-            },
-            onAddToCart: (productId) async {
-              final userId = FirebaseAuth.instance.currentUser?.uid;
-              if (userId == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Veuillez vous connecter pour ajouter des articles au panier'),
-                  ),
-                );
-                return;
-              }
 
-              try {
-                await FirebaseService().addToCart(userId, productId);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${product.name} ajouté au panier'),
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Erreur lors de l\'ajout au panier: $e'),
-                  ),
-                );
-              }
-            },
+                try {
+                  if (isFavorite) {
+                    await FirebaseService().addToFavorites(userId, productId);
+                  } else {
+                    await FirebaseService().removeFromFavorites(userId, productId);
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur lors de la mise à jour des favoris: $e'),
+                    ),
+                  );
+                }
+              },
+              onAddToCart: (productId) async {
+                final userId = FirebaseAuth.instance.currentUser?.uid;
+                if (userId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Veuillez vous connecter pour ajouter des articles au panier'),
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  await FirebaseService().addToCart(userId, productId);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${product.name} ajouté au panier'),
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur lors de l\'ajout au panier: $e'),
+                    ),
+                  );
+                }
+              },
+            ),
           );
         },
         childCount: productsToDisplay.length,

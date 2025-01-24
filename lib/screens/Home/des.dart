@@ -1,30 +1,10 @@
-// main.dart
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Xbox Product Detail',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'SF Pro Display',  // ou une autre police de votre choix
-      ),
-      home: const ProductDetailPage(),
-    );
-  }
-}
+import '../../models/product.dart'; // Assurez-vous d'importer le modèle Product
 
 class ProductDetailPage extends StatelessWidget {
-  const ProductDetailPage({super.key});
+  final Product product; // Ajoutez un paramètre Product
+
+  const ProductDetailPage({super.key, required this.product}); // Modifiez le constructeur
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +20,15 @@ class ProductDetailPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.favorite_border, color: Colors.black),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.download_outlined, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              // Ajouter aux favoris
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Ajouté aux favoris!'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -61,15 +45,15 @@ class ProductDetailPage extends StatelessWidget {
                       height: 300,
                       padding: const EdgeInsets.all(20),
                       child: Hero(
-                        tag: 'xbox-image',
-                        child: Image.asset(
-                          'assets/img/product_8.png',
+                        tag: 'product-image-${product.id}', // Utilisez l'ID du produit pour un tag unique
+                        child: Image.network(
+                          product.imagePath, // Utilisez l'URL de l'image du produit
                           fit: BoxFit.contain,
                         ),
                       ),
                     ),
                   ),
-                  
+
                   // Product Info
                   Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -80,9 +64,9 @@ class ProductDetailPage extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Xbox series X',
-                              style: TextStyle(
+                            Text(
+                              product.name, // Utilisez le nom du produit
+                              style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -106,21 +90,21 @@ class ProductDetailPage extends StatelessWidget {
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Ratings
                         Row(
                           children: [
                             const Icon(Icons.star, color: Colors.amber, size: 20),
-                            const Text(
-                              ' 4.8',
-                              style: TextStyle(
+                            Text(
+                              ' ${product.rating}', // Utilisez la note du produit
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             Text(
-                              ' (94.5K)',
+                              ' (${product.price})', // Utilisez le nombre d'avis du produit
                               style: TextStyle(
                                 color: Colors.grey[600],
                               ),
@@ -129,16 +113,16 @@ class ProductDetailPage extends StatelessWidget {
                             Icon(Icons.timer_outlined,
                                 color: Colors.grey[600], size: 20),
                             Text(
-                              ' 177 mins',
+                              ' ${product.price} mins', // Utilisez le temps de livraison du produit
                               style: TextStyle(
                                 color: Colors.grey[600],
                               ),
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // Size options
                         const Text(
                           'Size',
@@ -147,22 +131,18 @@ class ProductDetailPage extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              _buildSizeButton('8GB', true),
-                              const SizedBox(width: 12),
-                              _buildSizeButton('512GB', false),
-                              const SizedBox(width: 12),
-                              _buildSizeButton('1TB', false),
-                            ],
-                          ),
-                        ),
-                        
+                        // const SizedBox(height: 12),
+                        // SingleChildScrollView(
+                        //   scrollDirection: Axis.horizontal,
+                        //   child: Row(
+                        //     children: product.sizes.map((size) {
+                        //       return _buildSizeButton(size, size == product.selectedSize);
+                        //     }).toList(),
+                        //   ),
+                        // ),
+
                         const SizedBox(height: 24),
-                        
+
                         // Description
                         const Text(
                           'Description',
@@ -173,7 +153,7 @@ class ProductDetailPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'The Microsoft Xbox Series X gaming console is a creation of engineering with minimal load times and stunning graphics offering an up to 8K gaming experience.',
+                          product.description, // Utilisez la description du produit
                           style: TextStyle(
                             color: Colors.grey[600],
                             height: 1.5,
@@ -186,7 +166,7 @@ class ProductDetailPage extends StatelessWidget {
               ),
             ),
           ),
-          
+
           // Bottom Bar with Price and Add to Cart
           Container(
             padding: const EdgeInsets.all(16),
@@ -194,7 +174,6 @@ class ProductDetailPage extends StatelessWidget {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  // ignore: deprecated_member_use
                   color: Colors.grey.withOpacity(0.1),
                   spreadRadius: 1,
                   blurRadius: 10,
@@ -205,19 +184,19 @@ class ProductDetailPage extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      const Text(
                         'Price',
                         style: TextStyle(
                           color: Colors.grey,
                         ),
                       ),
                       Text(
-                        '5700.00 Dh',
-                        style: TextStyle(
+                        '${product.price} Dh', // Utilisez le prix du produit
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -263,6 +242,7 @@ class ProductDetailPage extends StatelessWidget {
     );
   }
 
+  // ignore: unused_element
   Widget _buildSizeButton(String label, bool isSelected) {
     return Material(
       color: Colors.transparent,
