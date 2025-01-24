@@ -151,7 +151,11 @@ class FirebaseService {
   }
 
   // Ajouter un produit au panier
-  Future<void> addToCart(String userId, String productId) async {
+  Future<void> addToCart(
+    String userId, 
+    String productId, 
+    {int quantity = 1, String? size, String? color}
+  ) async {
     try {
       final cartDoc = await _firestore
           .collection('users')
@@ -161,24 +165,30 @@ class FirebaseService {
           .get();
 
       if (cartDoc.exists) {
+        // Si le produit existe déjà dans le panier, mettre à jour la quantité
         final currentQuantity = cartDoc.data()?['quantity'] ?? 0;
         await cartDoc.reference.update({
-          'quantity': currentQuantity + 1,
+          'quantity': currentQuantity + quantity,
         });
       } else {
+        // Si le produit n'existe pas encore dans le panier, créer un nouveau document
+        final cartData = {
+          'productId': productId,
+          'quantity': quantity,
+          if (size != null) 'size': size, // Ajouter la taille si elle est fournie
+          if (color != null) 'color': color, // Ajouter la couleur si elle est fournie
+        };
+
         await _firestore
             .collection('users')
             .doc(userId)
             .collection('cart')
             .doc(productId)
-            .set({
-          'productId': productId,
-          'quantity': 1,
-          'selectedColor': 'Black',
-        });
+            .set(cartData);
       }
     } catch (e) {
       print('Erreur lors de l\'ajout au panier: $e');
+      rethrow; // Propager l'erreur pour la gérer dans l'interface utilisateur
     }
   }
 
@@ -204,7 +214,7 @@ class FirebaseService {
             final cartItem = CartItem(
               product: product,
               quantity: cartData['quantity'] as int? ?? 1,
-              selectedColor: cartData['selectedColor'] as String? ?? 'Black',
+              selectedColor: cartData['color'] as String? ?? 'Black',
             );
             cartItems.add(cartItem);
           }

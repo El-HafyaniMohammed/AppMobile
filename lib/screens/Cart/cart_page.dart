@@ -321,7 +321,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Color: Black',
+                                        'Color : ${item.selectedColor}',
                                         style: TextStyle(
                                           color: Colors.grey[600],
                                           fontSize: 14,

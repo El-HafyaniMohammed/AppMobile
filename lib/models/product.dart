@@ -8,8 +8,11 @@ class Product {
   final bool isOnSale;
   final double? salePrice;
   final String category;
-  int quantity; 
+  int quantity;
   final String description;
+  double deliveryTime;
+  final List<String> colors; // Tableau de couleurs disponibles
+  final List<String> sizes; // Tableau de tailles disponibles
 
   Product({
     required this.id,
@@ -21,23 +24,29 @@ class Product {
     this.isOnSale = false,
     this.salePrice,
     required this.category,
-    this.quantity = 1, // Initialisation de la quantité à 1
+    this.quantity = 1,
     required this.description,
+    required this.deliveryTime,
+    this.colors = const [], // Initialisation par défaut d'un tableau vide
+    this.sizes = const [], // Initialisation par défaut d'un tableau vide
   });
 
   factory Product.fromMap(Map<String, dynamic> map) {
     return Product(
-      id: map['id'] ,
-      name: map['name'] ,
-      brand: map['brand'] ,
+      id: map['id'],
+      name: map['name'],
+      brand: map['brand'],
       price: (map['price'] as num).toDouble(),
-      rating: (map['rating'] as num).toDouble() ,
+      rating: (map['rating'] as num).toDouble(),
       imagePath: map['imagePath'],
-      isOnSale: map['isOnSale'] ,
+      isOnSale: map['isOnSale'],
       salePrice: (map['salePrice'] as num?)?.toDouble(),
-      category: map['category'] as String,
-      quantity: map['quantity'] as int,
-      description: map['description'] // Charger la quantité depuis Firestore
+      category: map['category'],
+      quantity: map['quantity'],
+      description: map['description'],
+      deliveryTime: (map['deliveryTime'] as num).toDouble(),
+      colors: List<String>.from(map['colors'] ?? []), // Charger les couleurs depuis Firestore
+      sizes: List<String>.from(map['sizes'] ?? []), // Charger les tailles depuis Firestore
     );
   }
 
@@ -51,8 +60,12 @@ class Product {
       'imagePath': imagePath,
       'isOnSale': isOnSale,
       'salePrice': salePrice,
+      'category': category,
       'quantity': quantity,
-      'description':description
+      'description': description,
+      'deliveryTime': deliveryTime,
+      'colors': colors, // Sérialiser les couleurs
+      'sizes': sizes, // Sérialiser les tailles
     };
   }
 }
