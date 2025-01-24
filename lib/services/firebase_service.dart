@@ -215,6 +215,7 @@ class FirebaseService {
               product: product,
               quantity: cartData['quantity'] as int? ?? 1,
               selectedColor: cartData['color'] as String? ?? 'Black',
+              selectedSize: cartData['size'] as String? ?? '', // Charger la taille sélectionnée
             );
             cartItems.add(cartItem);
           }

@@ -3,12 +3,14 @@ import 'package:project/models/product.dart';
 class CartItem {
   final Product product;
   int quantity;
-  String selectedColor; // Couleur sélectionnée
+  String selectedColor;
+  String selectedSize; // Taille sélectionnée
 
   CartItem({
     required this.product,
     this.quantity = 1,
-    this.selectedColor = 'Black', // Couleur par défaut
+    this.selectedColor = 'Black', 
+    required this.selectedSize // Couleur par défaut
   });
 
   // Convertir l'objet en Map pour Firestore
@@ -16,7 +18,8 @@ class CartItem {
     return {
       "productId": product.id,
       'quantity': quantity,
-      'selectedColor': selectedColor, // Inclure la couleur sélectionnée
+      'selectedColor': selectedColor, 
+      'selectedSize': selectedSize // Ajouter la taille sélectionnée
     };
   }
 
@@ -25,7 +28,8 @@ class CartItem {
     return CartItem(
       product: product,
       quantity: data['quantity'] as int? ?? 1,
-      selectedColor: data['selectedColor'] as String? ?? 'Black', // Couleur par défaut
+      selectedColor: data['selectedColor'] as String? ?? 'Black', 
+      selectedSize: data['selectedSize'] as String? ?? '' // Charger la taille sélectionnée
     );
   }
 

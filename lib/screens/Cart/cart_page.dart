@@ -320,13 +320,26 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                         ],
                                       ),
                                       const SizedBox(height: 8),
-                                      Text(
-                                        'Color : ${item.selectedColor}',
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                          fontSize: 14,
+                                      if(item.product.sizes.isNotEmpty) ...[
+                                        Text(
+                                          'Size : ${item.selectedSize}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(height: 8),
+                                      ],
+                                      if(item.product.colors.isNotEmpty) ...[
+                                        Text(
+                                          'Color : ${item.selectedColor}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                      ],
                                       const SizedBox(height: 12),
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
