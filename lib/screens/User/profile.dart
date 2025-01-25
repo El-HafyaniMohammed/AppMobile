@@ -307,7 +307,22 @@ class _LoginContentState extends State<LoginContent> {
           'createdAt': DateTime.now(), // Optionnel : date de création des favoris
         });
       }
-
+      // cree une collection pour les adresses
+      final addressesSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('addresses')
+          .get();
+      if (addressesSnapshot.docs.isEmpty) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('addresses')
+            .doc('initial')
+            .set({
+          'createdAt': DateTime.now(), // Optionnel : date de création des favoris
+        });
+      }
       // Récupérer les informations de l'utilisateur depuis Firestore
       final user = await UserModel.getUserFromFirestore(userId);
       if (user == null) {
@@ -657,7 +672,15 @@ class _SignupContentState extends State<SignupContent> {
             .set({
           'createdAt': DateTime.now(), // Optionnel : date de création des favoris
         });
-
+        // cree une collection pour les adresses
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('addresses')
+            .doc('initial')
+            .set({
+          'createdAt': DateTime.now(), // Optionnel : date de création des favoris
+        });
         // Créer un nouvel utilisateur dans Firestore
         final newUser = UserModel.fromFirebaseUser(userCredential.user!);
         await newUser.saveToFirestore();

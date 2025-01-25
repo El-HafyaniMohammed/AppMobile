@@ -7,7 +7,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'screens/User/profile.dart';
 import './screens/Home/home.dart';
 import 'models/user_model.dart';
-
+import 'screens/User/payment_page.dart';
+import 'screens/User/addresses_page.dart';
+import 'screens/User/orders_page.dart';
+import 'screens/User/Wishlist.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -39,6 +42,11 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/Home': (context) => const HomeScreen(),
         '/profile': (context) => ProfilePage(user: _getCurrentUser()),
+        '/payment': (context) => const PaymentPage(),
+        '/addresses': (context) => const AddressesPage(),
+        '/orders': (context) => const OrdersPage(),
+        '/wishlist': (context) => const WishlistPage(),
+
       },
     );
   }

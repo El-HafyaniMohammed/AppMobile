@@ -658,13 +658,7 @@ class _ProfilePageState extends State<ProfilePage> {
             title: 'Mes commandes',
             subtitle: 'Voir l\'historique des commandes',
             color: Colors.blue,
-          ),
-          _buildMenuDivider(),
-          _buildMenuItem(
-            icon: Icons.favorite,
-            title: 'Liste de souhaits',
-            subtitle: 'Articles sauvegardés',
-            color: Colors.red,
+            onTap: () => Navigator.of(context).pushNamed('/orders'),
           ),
           _buildMenuDivider(),
           _buildMenuItem(
@@ -672,6 +666,7 @@ class _ProfilePageState extends State<ProfilePage> {
             title: 'Adresses',
             subtitle: 'Gérer les adresses de livraison',
             color: Colors.green,
+            onTap: () => Navigator.of(context).pushNamed('/addresses'),
           ),
           _buildMenuDivider(),
           _buildMenuItem(
@@ -679,6 +674,7 @@ class _ProfilePageState extends State<ProfilePage> {
             title: 'Paiement',
             subtitle: 'Cartes et méthodes de paiement',
             color: Colors.orange,
+            onTap: () => Navigator.of(context).pushNamed('/payment'),
           ),
         ],
       ),
@@ -690,6 +686,7 @@ class _ProfilePageState extends State<ProfilePage> {
     required String title,
     required String subtitle,
     required Color color,
+    required VoidCallback onTap
   }) {
     return ListTile(
       leading: Container(
@@ -716,7 +713,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: () {},
+      onTap: onTap,
     );
   }
 
