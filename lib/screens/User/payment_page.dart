@@ -1,8 +1,176 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uuid/uuid.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../models/PaymentMethod.dart';
+import '../../services/firebase_service.dart';
 
-class PaymentPage extends StatelessWidget {
+class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
+
+  @override
+  _PaymentPageState createState() => _PaymentPageState();
+}
+
+class _PaymentPageState extends State<PaymentPage> {
+  final FirebaseService _firebaseService = FirebaseService();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _cardNumberController = TextEditingController();
+  final TextEditingController _holderNameController = TextEditingController();
+  final TextEditingController _expiryDateController = TextEditingController();
+  final TextEditingController _cvvController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+
+  String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  List<PaymentMethod> _paymentMethods = [];
+  String _selectedPaymentType = 'Carte de crédit'; // Type de paiement par défaut
+
+  final List<String> _paymentTypes = [
+    'Carte de crédit',
+    'Carte de débit',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAndCleanInitialCollection(userId);
+    _loadPaymentMethods();
+  }
+
+  Future<void> _checkAndCleanInitialCollection(String userId) async {
+    try {
+      final addressesSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('payementCard')
+          .get();
+
+      if (addressesSnapshot.docs.isEmpty) {
+        return; // La collection est vide, pas besoin de la nettoyer
+      }
+
+      // Vérifier chaque document
+      for (final doc in addressesSnapshot.docs) {
+        final data = doc.data();
+
+        // Si le document est vide ou invalide, le supprimer
+        if (data.isEmpty ||
+            data['type'] == null ||
+            data['cardNumber'] == null ||
+            data['holderName'] == null ||
+            data['expiryDate'] == null ||
+            data['isDefault'] == null) {
+          await doc.reference.delete();
+          print('Document invalide supprimé : ${doc.id}');
+        }
+      }
+    } catch (e) {
+      print('Error cleaning initial collection: $e');
+    }
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    try {
+      final paymentMethods = await _firebaseService.fetchPaymentMethods(userId);
+      setState(() {
+        _paymentMethods = paymentMethods;
+      });
+    } catch (e) {
+      print('Error loading payment methods: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load payment methods')),
+      );
+    }
+  }
+
+  void _addPaymentMethod() {
+    _showPaymentMethodDialog();
+  }
+
+  String maskCardNumber(String cardNumber) {
+    if (cardNumber.length <= 4) {
+      return cardNumber; // Si le numéro est trop court, retournez-le tel quel
+    }
+    // Masque tous les chiffres sauf les 4 derniers
+    final maskedPart = '*' * (cardNumber.length - 4);
+    final lastFourDigits = cardNumber.substring(cardNumber.length - 4);
+    return '$maskedPart$lastFourDigits';
+  }
+
+  String maskExpiryDate(String expiryDate) {
+    if (expiryDate.length < 5) {
+      return expiryDate; // Si la date est trop courte, retournez-la telle quelle
+    }
+    // Masque les deux premiers chiffres (le mois)
+    return '**/${expiryDate.substring(3)}';
+  }
+
+  void _editPaymentMethod(PaymentMethod paymentMethod) {
+    _showPaymentMethodDialog(paymentMethod: paymentMethod);
+  }
+
+  Future<void> _savePaymentMethod(PaymentMethod? paymentMethod) async {
+    final newPaymentMethod = PaymentMethod(
+      id: paymentMethod?.id ?? const Uuid().v4(),
+      type: _selectedPaymentType,
+      cardNumber: _cardNumberController.text,
+      holderName: _holderNameController.text,
+      expiryDate: _expiryDateController.text,
+      isDefault: paymentMethod?.isDefault ?? false,
+    );
+
+    try {
+      if (paymentMethod != null) {
+        await _firebaseService.updatePaymentMethod(
+          paymentMethod: newPaymentMethod,
+          userId: userId,
+        );
+      } else {
+        await _firebaseService.addPaymentMethod(
+          paymentMethod: newPaymentMethod,
+          userId: userId,
+        );
+      }
+
+      _loadPaymentMethods(); // Recharger les méthodes de paiement après la mise à jour
+    } catch (e) {
+      print('Error saving payment method: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save payment method')),
+      );
+    }
+  }
+
+  Future<void> _deletePaymentMethod(String paymentMethodId) async {
+    try {
+      await _firebaseService.deletePaymentMethod(
+        paymentMethodId: paymentMethodId,
+        userId: userId,
+      );
+      _loadPaymentMethods(); // Recharger les méthodes de paiement après la suppression
+    } catch (e) {
+      print('Error deleting payment method: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete payment method')),
+      );
+    }
+  }
+
+  Future<void> _setDefaultPaymentMethod(String paymentMethodId) async {
+    try {
+      await _firebaseService.setDefaultPaymentMethod(
+        paymentMethodId: paymentMethodId,
+        userId: userId,
+      );
+      _loadPaymentMethods(); // Recharger les méthodes de paiement après la mise à jour
+    } catch (e) {
+      print('Error setting default payment method: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to set default payment method')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,147 +181,70 @@ class PaymentPage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => _showAddPaymentMethodDialog(context),
+            onPressed: _addPaymentMethod,
           ),
         ],
       ),
-      body: ListView(
+      body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        children: [
-          _buildPaymentMethodCard(
-            type: 'Carte de crédit',
-            cardNumber: '4321 **** **** 5678',
-            holderName: 'John Doe',
-            expiryDate: '12/25',
-            isDefault: true,
-          ),
-          const SizedBox(height: 16),
-          _buildPaymentMethodCard(
-            type: 'Carte de débit',
-            cardNumber: '1234 **** **** 9876',
-            holderName: 'Jane Doe',
-            expiryDate: '11/24',
-            isDefault: false,
-          ),
-          const SizedBox(height: 16),
-          _buildPaymentMethodCard(
-            type: 'Paypal',
-            cardNumber: 'johndoe@example.com',
-            holderName: 'John Doe',
-            expiryDate: '',
-            isDefault: false,
-          ),
-        ],
+        itemCount: _paymentMethods.length,
+        itemBuilder: (context, index) {
+          final paymentMethod = _paymentMethods[index];
+          return _buildPaymentMethodCard(paymentMethod);
+        },
       ),
     );
   }
 
-  Widget _buildPaymentMethodCard({
-    required String type,
-    required String cardNumber,
-    required String holderName,
-    required String expiryDate,
-    required bool isDefault,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-          ),
-        ],
-      ),
+  Widget _buildPaymentMethodCard(PaymentMethod paymentMethod) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    _getPaymentMethodIcon(type),
-                    const SizedBox(width: 8),
-                    Text(
-                      type,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                if (isDefault)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+          ListTile(
+            leading: _getPaymentMethodIcon(paymentMethod.type),
+            title: Text(paymentMethod.type),
+            trailing: paymentMethod.isDefault
+                ? Chip(
+                    label: const Text('Défaut'),
+                    backgroundColor: Colors.green.shade100,
+                  )
+                : TextButton(
+                    onPressed: () => _setDefaultPaymentMethod(paymentMethod.id),
                     child: const Text(
-                      'Défaut',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontSize: 12,
-                      ),
+                      'Définir par défaut',
+                      style: TextStyle(color: Colors.green),
                     ),
                   ),
-              ],
-            ),
           ),
-          const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Titulaire: $holderName',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text('Titulaire: ${paymentMethod.holderName}'),
                 const SizedBox(height: 4),
-                Text(
-                  cardNumber,
-                  style: const TextStyle(
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                if (expiryDate.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text('Expire le: $expiryDate'),
-                ],
+                Text('Numéro: ${maskCardNumber(paymentMethod.cardNumber)}'),
+                if (paymentMethod.expiryDate.isNotEmpty)
+                  Text('Expire le: ${maskExpiryDate(paymentMethod.expiryDate)}'),
               ],
             ),
           ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Modifier',
-                    style: TextStyle(color: Colors.green),
-                  ),
+          ButtonBar(
+            children: [
+              TextButton(
+                onPressed: () => _editPaymentMethod(paymentMethod),
+                child: const Text('Modifier'),
+              ),
+              TextButton(
+                onPressed: () => _deletePaymentMethod(paymentMethod.id),
+                child: const Text(
+                  'Supprimer',
+                  style: TextStyle(color: Colors.red),
                 ),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    'Supprimer',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -173,41 +264,56 @@ class PaymentPage extends StatelessWidget {
     }
   }
 
-  void _showAddPaymentMethodDialog(BuildContext context) {
+  void _showPaymentMethodDialog({PaymentMethod? paymentMethod}) {
+    final isEditing = paymentMethod != null;
+
+    if (isEditing) {
+      _selectedPaymentType = paymentMethod.type;
+      _cardNumberController.text = paymentMethod.cardNumber;
+      _holderNameController.text = paymentMethod.holderName;
+      _expiryDateController.text = paymentMethod.expiryDate;
+    } else {
+      _selectedPaymentType = 'Carte de crédit'; // Réinitialiser le type par défaut
+      _cardNumberController.clear();
+      _holderNameController.clear();
+      _expiryDateController.clear();
+      _emailController.clear();
+    }
+
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Ajouter un moyen de paiement'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: 'Type de paiement',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+      builder: (context) => AlertDialog(
+        title: Text(isEditing ? 'Modifier le moyen de paiement' : 'Ajouter un moyen de paiement'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: _selectedPaymentType,
+                decoration: InputDecoration(
+                  labelText: 'Type de paiement',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  items: [
-                    'Carte de crédit',
-                    'Carte de débit',
-                    'Paypal'
-                  ].map((type) => DropdownMenuItem(
+                ),
+                items: _paymentTypes.map((type) {
+                  return DropdownMenuItem(
                     value: type,
                     child: Text(type),
-                  )).toList(),
-                  onChanged: (value) {},
-                ),
-                const SizedBox(height: 16),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPaymentType = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              if (_selectedPaymentType == 'Carte de crédit' ||
+                  _selectedPaymentType == 'Carte de débit') ...[
                 TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Numéro de carte',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                  controller: _cardNumberController,
+                  decoration: const InputDecoration(labelText: 'Numéro de carte'),
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
@@ -216,25 +322,16 @@ class PaymentPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 TextField(
-                  decoration: InputDecoration(
-                    labelText: 'Nom du titulaire',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
+                  controller: _holderNameController,
+                  decoration: const InputDecoration(labelText: 'Nom du titulaire'),
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
                       child: TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Date d\'expiration',
-                          hintText: 'MM/AA',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
+                        controller: _expiryDateController,
+                        decoration: const InputDecoration(labelText: 'Date d\'expiration (MM/AA)'),
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -245,12 +342,8 @@ class PaymentPage extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextField(
-                        decoration: InputDecoration(
-                          labelText: 'CVV',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
+                        controller: _cvvController,
+                        decoration: const InputDecoration(labelText: 'CVV'),
                         keyboardType: TextInputType.number,
                         maxLength: 3,
                         inputFormatters: [
@@ -261,23 +354,30 @@ class PaymentPage extends StatelessWidget {
                   ],
                 ),
               ],
-            ),
+              if (_selectedPaymentType == 'PayPal') ...[
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Adresse e-mail'),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ],
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
-              child: const Text('Ajouter'),
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _savePaymentMethod(paymentMethod);
+              Navigator.of(context).pop();
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -291,7 +391,7 @@ class _CardNumberFormatter extends TextInputFormatter {
 
     for (var i = 0; i < text.length; i++) {
       if (i > 0 && i % 4 == 0) {
-        formattedText += ' ';
+        formattedText += '  ';
       }
       formattedText += text[i];
     }

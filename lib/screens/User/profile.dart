@@ -11,7 +11,8 @@ import '../main_screen.dart';
 import 'ForgotPasswordPage.dart';
 import 'package:flutter/gestures.dart';
 import 'privacy_and_terms.dart';
- // For mobile image picker
+
+// For mobile image picker
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -24,7 +25,7 @@ class _AuthScreensState extends State<LoginScreen>
   late final TabController _tabController;
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final Curve _animationCurve = Curves.easeInOut;
-  
+
   @override
   void initState() {
     super.initState();
@@ -175,7 +176,7 @@ class _LoginContentState extends State<LoginContent> {
 
       // Démarrer le processus de connexion Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
+
       if (googleUser == null) {
         // L'utilisateur a annulé la connexion
         setState(() => _isLoading = false);
@@ -183,7 +184,8 @@ class _LoginContentState extends State<LoginContent> {
       }
 
       // Obtenir les détails d'authentification
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       // Créer les credentials Firebase
       final credential = GoogleAuthProvider.credential(
@@ -193,14 +195,15 @@ class _LoginContentState extends State<LoginContent> {
       // Connecter avec Firebase
       await FirebaseAuth.instance.signInWithCredential(credential);
       // ignore: unused_local_variable
-      final user = UserModel.fromFirebaseUser(FirebaseAuth.instance.currentUser!);
+      final user =
+          UserModel.fromFirebaseUser(FirebaseAuth.instance.currentUser!);
       if (mounted) {
         // Naviguer vers l'écran principal
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MainScreen(user: user)),
         );
-        
+
         // Afficher un message de succès
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -234,7 +237,7 @@ class _LoginContentState extends State<LoginContent> {
       } else {
         errorMessage = 'An unexpected error occurred. Please try again.';
       }
-      
+
       if (mounted) {
         setState(() => _error = errorMessage);
       }
@@ -304,7 +307,8 @@ class _LoginContentState extends State<LoginContent> {
             .collection('favorites')
             .doc('initial')
             .set({
-          'createdAt': DateTime.now(), // Optionnel : date de création des favoris
+          'createdAt':
+              DateTime.now(), // Optionnel : date de création des favoris
         });
       }
       // cree une collection pour les adresses
@@ -320,7 +324,26 @@ class _LoginContentState extends State<LoginContent> {
             .collection('addresses')
             .doc('initial')
             .set({
-          'createdAt': DateTime.now(), // Optionnel : date de création des favoris
+          'createdAt':
+              DateTime.now(), // Optionnel : date de création des favoris
+        });
+      }
+      // cree une collection pour les cartes de payement
+      // ignore: non_constant_identifier_names
+      final PayementCardSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('payementCard')
+          .get();
+      if (PayementCardSnapshot.docs.isEmpty) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('payementCard')
+            .doc('initial')
+            .set({
+          'createdAt':
+              DateTime.now(), // Optionnel : date de création des favoris
         });
       }
       // Récupérer les informations de l'utilisateur depuis Firestore
@@ -340,11 +363,11 @@ class _LoginContentState extends State<LoginContent> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => MainScreen(user: user ?? UserModel.fromFirebaseUser(userCredential.user!)),
+            builder: (_) => MainScreen(
+                user: user ?? UserModel.fromFirebaseUser(userCredential.user!)),
           ),
         );
       }
-
     } on FirebaseAuthException catch (e) {
       String errorMessage;
       switch (e.code) {
@@ -366,14 +389,14 @@ class _LoginContentState extends State<LoginContent> {
         default:
           errorMessage = 'An error occurred during login. Please try again.';
       }
-      
+
       if (mounted) {
         setState(() => _error = errorMessage);
       }
-
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'An unexpected error occurred. Please try again.');
+        setState(
+            () => _error = 'An unexpected error occurred. Please try again.');
       }
     } finally {
       if (mounted) {
@@ -381,7 +404,6 @@ class _LoginContentState extends State<LoginContent> {
       }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -392,11 +414,11 @@ class _LoginContentState extends State<LoginContent> {
         child: Column(
           children: [
             _buildSocialButton(
-              onPressed: _isLoading 
-              ? null 
-              : () async {
-                  await _handleGoogleSignIn();
-                },
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                      await _handleGoogleSignIn();
+                    },
               icon: 'assets/img/google_icon.png',
               label: 'Login with Google',
             ),
@@ -439,13 +461,13 @@ class _LoginContentState extends State<LoginContent> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ForgotPasswordPage(),
-                  ),
-                );
-              },
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ForgotPasswordPage(),
+                    ),
+                  );
+                },
                 child: Text(
                   'Forgot Password?',
                   style: TextStyle(
@@ -581,7 +603,8 @@ class _SignupContentState extends State<SignupContent> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Verification email has been sent. Please check your inbox.'),
+          content: Text(
+              'Verification email has been sent. Please check your inbox.'),
           backgroundColor: Colors.blue,
         ),
       );
@@ -591,24 +614,24 @@ class _SignupContentState extends State<SignupContent> {
   void _startEmailVerificationCheck(User user) {
     // Annuler le timer existant s'il y en a un
     _timer?.cancel();
-    
+
     // Créer un nouveau timer qui vérifie toutes les 3 secondes
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) async {
       // Recharger l'utilisateur pour obtenir le dernier état
       await user.reload();
-      
+
       // Obtenir l'utilisateur mis à jour
       final updatedUser = FirebaseAuth.instance.currentUser;
-      
+
       if (updatedUser?.emailVerified ?? false) {
         // Annuler le timer
         timer.cancel();
-        
+
         if (mounted) {
           // Fermer la boîte de dialogue
           final user = UserModel.fromFirebaseUser(updatedUser!);
           Navigator.of(context).pop();
-          
+
           // Rediriger vers la page principale
           Navigator.pushReplacement(
             context,
@@ -616,7 +639,7 @@ class _SignupContentState extends State<SignupContent> {
               builder: (_) => MainScreen(user: user),
             ),
           );
-          
+
           // Afficher le message de succès
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -670,7 +693,8 @@ class _SignupContentState extends State<SignupContent> {
             .collection('favorites')
             .doc('initial')
             .set({
-          'createdAt': DateTime.now(), // Optionnel : date de création des favoris
+          'createdAt':
+              DateTime.now(), // Optionnel : date de création des favoris
         });
         // cree une collection pour les adresses
         await FirebaseFirestore.instance
@@ -679,7 +703,18 @@ class _SignupContentState extends State<SignupContent> {
             .collection('addresses')
             .doc('initial')
             .set({
-          'createdAt': DateTime.now(), // Optionnel : date de création des favoris
+          'createdAt':
+              DateTime.now(), // Optionnel : date de création des favoris
+        });
+        // cree une collection pour les cartes de payement
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('payementCard')
+            .doc('initial')
+            .set({
+          'createdAt':
+              DateTime.now(), // Optionnel : date de création des favoris
         });
         // Créer un nouvel utilisateur dans Firestore
         final newUser = UserModel.fromFirebaseUser(userCredential.user!);
@@ -694,7 +729,8 @@ class _SignupContentState extends State<SignupContent> {
             barrierDismissible: false,
             builder: (BuildContext context) {
               return WillPopScope(
-                onWillPop: () async => false, // Empêche de fermer avec le bouton retour
+                onWillPop: () async =>
+                    false, // Empêche de fermer avec le bouton retour
                 child: AlertDialog(
                   title: const Text('Email Verification Required'),
                   content: Column(
@@ -723,9 +759,11 @@ class _SignupContentState extends State<SignupContent> {
                         await FirebaseAuth.instance.signOut();
                         if (mounted) {
                           // ignore: use_build_context_synchronously
-                          Navigator.of(context).pop(); // Fermer la boîte de dialogue
+                          Navigator.of(context)
+                              .pop(); // Fermer la boîte de dialogue
                           // ignore: use_build_context_synchronously
-                          Navigator.of(context).pop(); // Retourner à l'écran précédent
+                          Navigator.of(context)
+                              .pop(); // Retourner à l'écran précédent
                         }
                       },
                       child: const Text('Cancel'),
@@ -739,7 +777,6 @@ class _SignupContentState extends State<SignupContent> {
           _startEmailVerificationCheck(userCredential.user!);
         }
       }
-
     } on FirebaseAuthException catch (e) {
       String errorMessage;
       switch (e.code) {
@@ -755,14 +792,14 @@ class _SignupContentState extends State<SignupContent> {
         default:
           errorMessage = e.message ?? 'An unknown error occurred.';
       }
-      
+
       if (mounted) {
         setState(() => _error = errorMessage);
       }
-      
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'An unexpected error occurred. Please try again.');
+        setState(
+            () => _error = 'An unexpected error occurred. Please try again.');
       }
     } finally {
       if (mounted) {
@@ -770,6 +807,7 @@ class _SignupContentState extends State<SignupContent> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -933,7 +971,7 @@ Widget _buildSocialButton({
     width: double.infinity,
     height: 40,
     child: OutlinedButton.icon(
-      onPressed:onPressed,
+      onPressed: onPressed,
       icon: Image.asset(icon, height: 24),
       label: Text(
         label,
@@ -971,7 +1009,8 @@ Widget _buildTermsText() {
               ..onTap = () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const TermsOfServicePage()),
+                  MaterialPageRoute(
+                      builder: (context) => const TermsOfServicePage()),
                 );
               },
           ),
@@ -987,7 +1026,8 @@ Widget _buildTermsText() {
               ..onTap = () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
+                  MaterialPageRoute(
+                      builder: (context) => const PrivacyPolicyPage()),
                 );
               },
           ),
@@ -996,4 +1036,3 @@ Widget _buildTermsText() {
     ),
   );
 }
-

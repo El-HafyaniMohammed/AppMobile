@@ -83,8 +83,23 @@ class _AddressesPageState extends State<AddressesPage> {
     _showAddressBottomSheet();
   }
 
-  void _editAddress(AddressUser address) {
+  void _editAddress(AddressUser address)async {
     _showAddressBottomSheet(existingAddress: address);
+     try {
+      await _firebaseService.updateAddress(
+        address: address,
+        userId: userId,
+      );
+      _loadAddresses(); // Recharger les adresses après la suppression
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error deleting address: $e');
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update address')),
+      );
+    }
+    
   }
 
   Future<void> _saveAddress(AddressUser? existingAddress) async {
@@ -143,6 +158,7 @@ class _AddressesPageState extends State<AddressesPage> {
       );
       _loadAddresses(); // Recharger les adresses après la mise à jour
     } catch (e) {
+      // ignore: avoid_print
       print('Error setting default address: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to set default address')),
@@ -154,11 +170,11 @@ class _AddressesPageState extends State<AddressesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mes Adresses'),
+        title: const Text('Mes Adresses', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.green,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: Colors.white),
             onPressed: _addNewAddress,
           ),
         ],
@@ -378,7 +394,7 @@ class _AddressesPageState extends State<AddressesPage> {
                 ),
                 child: Text(
                   isEditing ? 'Mettre à jour' : 'Ajouter',
-                  style: const TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
               const SizedBox(height: 20),

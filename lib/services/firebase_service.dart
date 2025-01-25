@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 import '../models/cart_item.dart';
 import '../models/Address_User.dart';
-
+import '../models/PaymentMethod.dart';
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -310,12 +310,29 @@ class FirebaseService {
     required String userId,
   }) async {
     try {
+      // 1. Rechercher le document qui correspond à l'addressId
+      final querySnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('addresses')
+          .where('addressId', isEqualTo: address.addressId) // Recherche par addressId
+          .get();
+
+      // 2. Vérifier si un document a été trouvé
+      if (querySnapshot.docs.isEmpty) {
+        throw Exception('Address not found');
+      }
+
+      // 3. Récupérer l'ID du document trouvé
+      final documentId = querySnapshot.docs.first.id;
+
+      // 4. Mettre à jour le document avec l'ID trouvé
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('addresses')
-          .doc(address.addressId)
-          .update(address.toMap());
+          .doc(documentId) // Utiliser l'ID du document
+          .update(address.toMap()); // Mettre à jour les données
     } catch (e) {
       print('Error updating address: $e');
       throw Exception('Failed to update address');
@@ -403,4 +420,82 @@ class FirebaseService {
     }
   }
   
+  /// Fetch all payment methods for the current user
+  Future<List<PaymentMethod>> fetchPaymentMethods(String userId) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('paymentMethods')
+        .get();
+
+    return snapshot.docs
+        .map((doc) => PaymentMethod.fromMap(doc.data()))
+        .toList();
+  }
+  /// Add a new payment method for the current user
+  Future<void> addPaymentMethod({
+    required PaymentMethod paymentMethod,
+    required String userId,
+  }) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('paymentMethods')
+        .doc(paymentMethod.id)
+        .set(paymentMethod.toMap());
+  }
+
+  /// Update an existing payment method for the current user
+  Future<void> updatePaymentMethod({
+    required PaymentMethod paymentMethod,
+    required String userId,
+  }) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('paymentMethods')
+        .doc(paymentMethod.id)
+        .update(paymentMethod.toMap());
+  }
+
+  /// Delete a payment method for the current user
+   Future<void> deletePaymentMethod({
+    required String paymentMethodId,
+    required String userId,
+  }) async {
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('paymentMethods')
+        .doc(paymentMethodId)
+        .delete();
+  }
+
+  /// Set a payment method as default for the current user
+  Future<void> setDefaultPaymentMethod({
+    required String paymentMethodId,
+    required String userId,
+  }) async {
+    // Reset all payment methods to not default
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('paymentMethods')
+        .get();
+
+    final batch = _firestore.batch();
+    for (final doc in snapshot.docs) {
+      batch.update(doc.reference, {'isDefault': false});
+    }
+
+    // Set the selected payment method as default
+    final paymentMethodRef = _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('paymentMethods')
+        .doc(paymentMethodId);
+    batch.update(paymentMethodRef, {'isDefault': true});
+
+    await batch.commit();
+  }
 }
