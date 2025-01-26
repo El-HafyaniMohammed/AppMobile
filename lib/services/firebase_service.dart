@@ -153,6 +153,21 @@ class FirebaseService {
     }
   }
 
+  // Récupérer le nombre de favoris
+  Future<int> getFavoritesCount(String userId) async {
+    try {
+      final favoritesSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .get();
+      return (favoritesSnapshot.docs.length - 1);
+    } catch (e) {
+      // ignore: avoid_print
+      print('Erreur lors de la récupération des favoris: $e');
+      return 0;
+    }
+  }
   // Ajouter un produit au panier
   Future<void> addToCart(String userId, String productId,
       {int quantity = 1, String? size, String? color}) async {
@@ -265,7 +280,7 @@ class FirebaseService {
     }
   }
 
-/// Fetch all addresses for the current user
+/// recuperer les adresses de l'utilisateur actuel
   Future<List<AddressUser>> fetchAddresses(String userId) async {
     try {
       final addressesSnapshot = await _firestore
@@ -286,7 +301,7 @@ class FirebaseService {
     }
   }
 
-  /// Add a new address for the current user
+  /// ajouter une adresse pour l'utilisateur actuel
   Future<String?> addAddress({
     required AddressUser address,
     required String userId,
@@ -304,7 +319,7 @@ class FirebaseService {
     }
   }
 
-  /// Update an existing address for the current user
+  // mettre à jour une adresse pour l'utilisateur actuel
   Future<void> updateAddress({
     required AddressUser address,
     required String userId,
@@ -339,7 +354,7 @@ class FirebaseService {
     }
   }
 
-  /// Delete an address for the current user
+  /// supprimer une adresse pour l'utilisateur actuel
   Future<void> deleteAddress({
     required String addressId,
     required String userId,
@@ -371,7 +386,7 @@ class FirebaseService {
     }
   }
 
-  /// Set an address as default for the current user
+  /// ajouter une adresse par défaut pour l'utilisateur actuel
   Future<void> setDefaultAddress({
     required String addressId,
     required String userId,
@@ -420,7 +435,7 @@ class FirebaseService {
     }
   }
   
-  /// Fetch all payment methods for the current user
+  /// recuperer les methodes de paiement
   Future<List<PaymentMethod>> fetchPaymentMethods(String userId) async {
     final snapshot = await _firestore
         .collection('users')
@@ -432,7 +447,7 @@ class FirebaseService {
         .map((doc) => PaymentMethod.fromMap(doc.data()))
         .toList();
   }
-  /// Add a new payment method for the current user
+  /// ajouter une methode de paiement
   Future<void> addPaymentMethod({
     required PaymentMethod paymentMethod,
     required String userId,
@@ -445,7 +460,7 @@ class FirebaseService {
         .set(paymentMethod.toMap());
   }
 
-  /// Update an existing payment method for the current user
+  /// mettre à jour une methode de paiement
   Future<void> updatePaymentMethod({
     required PaymentMethod paymentMethod,
     required String userId,
@@ -458,7 +473,7 @@ class FirebaseService {
         .update(paymentMethod.toMap());
   }
 
-  /// Delete a payment method for the current user
+  /// supprimer une methode de paiement
    Future<void> deletePaymentMethod({
     required String paymentMethodId,
     required String userId,
@@ -471,7 +486,7 @@ class FirebaseService {
         .delete();
   }
 
-  /// Set a payment method as default for the current user
+  /// activer une methode de paiement
   Future<void> setDefaultPaymentMethod({
     required String paymentMethodId,
     required String userId,

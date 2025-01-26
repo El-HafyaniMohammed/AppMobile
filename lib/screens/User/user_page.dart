@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart'; // For picking files
 import 'package:permission_handler/permission_handler.dart' as permission_handler; // For handling permissions
+import '../../services/firebase_service.dart';
 
 class ProfilePage extends StatefulWidget {
   final UserModel user;
@@ -27,6 +28,8 @@ class _ProfilePageState extends State<ProfilePage> {
   late TextEditingController _phoneController;
   File? _selectedImage; // Pour stocker l'image sélectionnée
   bool _isEditing = false;
+  final FirebaseService _firebaseService = FirebaseService();
+  final String userId = FirebaseAuth.instance.currentUser!.uid;
 
   @override
   void initState() {
@@ -593,7 +596,18 @@ class _ProfilePageState extends State<ProfilePage> {
           _buildStatItem(
               icon: Icons.local_shipping, value: '2', label: 'En cours'),
           _buildVerticalDivider(),
-          _buildStatItem(icon: Icons.favorite, value: '5', label: 'Favoris'),
+          FutureBuilder<int>(
+            future: _firebaseService.getFavoritesCount(userId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return _buildStatItem(icon: Icons.favorite, value: '...', label: 'Favoris');
+              } else if (snapshot.hasError) {
+                return _buildStatItem(icon: Icons.favorite, value: '0', label: 'Favoris');
+              } else {
+                return _buildStatItem(icon: Icons.favorite, value: snapshot.data.toString() , label: 'Favoris');
+              }
+            },
+          ),
         ],
       ),
     );
