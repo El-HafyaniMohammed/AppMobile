@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LocaleProvider with ChangeNotifier {
   static const String _localeKey = 'app_locale';
-  
+
   Locale _locale = const Locale('fr');
 
   LocaleProvider() {
@@ -15,7 +15,7 @@ class LocaleProvider with ChangeNotifier {
   Future<void> _loadLocaleFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
     final storedLocaleCode = prefs.getString(_localeKey);
-    
+
     if (storedLocaleCode != null) {
       _locale = Locale(storedLocaleCode);
       notifyListeners();
@@ -37,8 +37,6 @@ class LocaleProvider with ChangeNotifier {
   static List<Locale> get supportedLocales => [
     const Locale('fr'),
     const Locale('en'),
-    const Locale('ar'),
-    const Locale('es'),
   ];
 
   // Helper method to get language name
@@ -46,8 +44,6 @@ class LocaleProvider with ChangeNotifier {
     switch (locale.languageCode) {
       case 'fr': return 'Français';
       case 'en': return 'English';
-      case 'ar': return 'العربية';
-      case 'es': return 'Español';
       default: return locale.languageCode;
     }
   }

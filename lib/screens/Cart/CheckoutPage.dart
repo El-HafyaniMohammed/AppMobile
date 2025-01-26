@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../../models/cart_item.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'OrderTrackingPage.dart';
 class CheckoutPage extends StatefulWidget {
   final List<CartItem> cartItems;
 
@@ -249,17 +250,42 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  void _processCheckout() {
-    if (_currentStep == 0 && !_formKey.currentState!.validate()) {
-      return;
-    }
 
-    if (_currentStep < 2) {
-      setState(() {
-        _currentStep++;
-      });
-    } else {
-      // Implement actual checkout logic here
+void _processCheckout() async {
+  if (_currentStep == 0 && !_formKey.currentState!.validate()) {
+    return;
+  }
+
+  if (_currentStep < 2) {
+    setState(() {
+      _currentStep++;
+    });
+  } else {
+    // Créez un objet pour représenter la commande
+    final order = {
+      'address': _addressController.text,
+      'city': _cityController.text,
+      'phone': _phoneController.text,
+      'paymentMethod': _selectedPaymentMethod,
+      'items': widget.cartItems.map((item) => {
+        'productName': item.product.name,
+        'quantity': item.quantity,
+        'price': item.displayPrice,
+        'color': item.selectedColor,
+        'size': item.selectedSize,
+      }).toList(),
+      'subtotal': subtotal,
+      'deliveryFee': deliveryFee,
+      'discount': discount,
+      'total': total,
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
+    // Enregistrez la commande dans Firestore
+    try {
+      final orderRef = await FirebaseFirestore.instance.collection('orders').add(order);
+      final generatedOrderId = orderRef.id;
+      
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -294,8 +320,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
           actions: [
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop();
-                // Navigate to order tracking or home page
+               Navigator.push(
+                context, 
+                MaterialPageRoute(
+                  builder: (context) => OrderTrackingPage(
+                    orderId: generatedOrderId,
+                    statuses: [
+                      OrderStatus(
+                        title: 'Order Confirmed',
+                        description: 'Your order has been received',
+                        isCompleted: true,
+                        icon: Icons.check_circle,
+                        timestamp: DateTime.now().toString(),
+                      ),
+                      // Add other initial statuses
+                    ],
+                  ),
+                ),
+              );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
@@ -308,8 +350,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
           ],
         ),
       );
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text('Failed to place order: $e'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

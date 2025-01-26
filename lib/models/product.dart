@@ -79,4 +79,63 @@ class Product {
   get displayPrice {
     return isOnSale ? (salePrice ?? price) : price;
   }
+  Product copyWith({
+    String? selectedSize,
+    String? selectedColor,
+  }){
+    return Product(
+      id: id,
+      name: name,
+      brand: brand,
+      price: price,
+      rating: rating,
+      imagePath: imagePath,
+      isOnSale: isOnSale,
+      salePrice: salePrice,
+      category: category,
+      quantity: quantity,
+      description: description,
+      deliveryTime: deliveryTime,
+      colors: colors,
+      sizes: sizes,
+      sizePrices: sizePrices,
+      colorPrices: colorPrices,
+    );
+  }
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'brand': brand,
+    'price': price,
+    'rating': rating,
+    'imagePath': imagePath,
+    'isOnSale': isOnSale,
+    'salePrice': salePrice,
+    'category': category,
+    'quantity': quantity,
+    'description': description,
+    'deliveryTime': deliveryTime,
+    'colors': colors,
+    'sizes': sizes,
+    'sizePrices': sizePrices,
+    'colorPrices': colorPrices,
+  };
+   factory Product.fromJson(Map<String, dynamic> json) => Product(
+    id: json['id'],
+    name: json['name'],
+    brand: json['brand'],
+    price: json['price'],
+    rating: json['rating'],
+    imagePath: json['imagePath'],
+    isOnSale: json['isOnSale'],
+    salePrice: json['salePrice'],
+    category: json['category'],
+    quantity: json['quantity'],
+    description: json['description'],
+    deliveryTime: json['deliveryTime'],
+    colors: json['colors'],
+    sizes: json['sizes'],
+    sizePrices: json['sizePrices'],
+    colorPrices: json['colorPrices'],
+   );
 }

@@ -9,7 +9,7 @@ class CartItem {
   CartItem({
     required this.product,
     this.quantity = 1,
-    this.selectedColor = 'Black', 
+    this.selectedColor = '', // Couleur par défaut
     required this.selectedSize // Couleur par défaut
   });
 
@@ -28,7 +28,7 @@ class CartItem {
     return CartItem(
       product: product,
       quantity: data['quantity'] as int? ?? 1,
-      selectedColor: data['selectedColor'] as String? ?? 'Black', 
+      selectedColor: data['selectedColor'] as String? ?? '', 
       selectedSize: data['selectedSize'] as String? ?? '' // Charger la taille sélectionnée
     );
   }

@@ -413,23 +413,121 @@ class _DiscoverPageState extends State<DiscoverPage> {
                 }
               },
               onAddToCart: (productId) async {
-                final userId = FirebaseAuth.instance.currentUser?.uid;
-                if (userId == null) {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Veuillez vous connecter pour ajouter des articles au panier'),
+      ),
+    );
+    return;
+  }
+
+  final product = products.firstWhere((p) => p.id == productId);
+
+  // Vérifier si le produit a des tailles ou des couleurs
+  if (product.sizes.isNotEmpty || product.colors.isNotEmpty) {
+    // Afficher une boîte de dialogue pour sélectionner la taille ou la couleur
+    await _showSizeColorDialog(context, product, userId);
+  } else {
+    // Ajouter directement au panier si aucune taille ou couleur n'est nécessaire
+    try {
+      await FirebaseService().addToCart(userId, productId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${product.name} ajouté au panier'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de l\'ajout au panier: $e'),
+        ),
+      );
+    }
+  }
+},
+            ),
+          );
+        },
+        childCount: productsToDisplay.length,
+      ),
+    );
+  }
+  Future<void> _showSizeColorDialog(BuildContext context, Product product, String userId) async {
+    String? selectedSize;
+    String? selectedColor;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Sélectionnez les options pour ${product.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (product.sizes.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  value: selectedSize,
+                  hint: const Text('Sélectionnez une taille'),
+                  items: product.sizes.map((size) {
+                    return DropdownMenuItem(
+                      value: size,
+                      child: Text(size),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedSize = value;
+                  },
+                ),
+              if (product.colors.isNotEmpty)
+                DropdownButtonFormField<String>(
+                  value: selectedColor,
+                  hint: const Text('Sélectionnez une couleur'),
+                  items: product.colors.map((color) {
+                    return DropdownMenuItem(
+                      value: color,
+                      child: Text(color),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    selectedColor = value;
+                  },
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if ((product.sizes.isNotEmpty && selectedSize == null) ||
+                    (product.colors.isNotEmpty && selectedColor == null)) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Veuillez vous connecter pour ajouter des articles au panier'),
+                      content: Text('Veuillez sélectionner une taille et/ou une couleur'),
                     ),
                   );
                   return;
                 }
 
                 try {
-                  await FirebaseService().addToCart(userId, productId);
+                  await FirebaseService().addToCart(
+                    userId,
+                    product.id,
+                    size: selectedSize,
+                    color: selectedColor,
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('${product.name} ajouté au panier'),
                     ),
                   );
+                  Navigator.pop(context);
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -438,11 +536,11 @@ class _DiscoverPageState extends State<DiscoverPage> {
                   );
                 }
               },
+              child: const Text('Ajouter au panier'),
             ),
-          );
-        },
-        childCount: productsToDisplay.length,
-      ),
+          ],
+        );
+      },
     );
   }
 }

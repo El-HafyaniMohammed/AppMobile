@@ -12,6 +12,8 @@ import 'package:permission_handler/permission_handler.dart'
 import '../../services/firebase_service.dart';
 import 'package:provider/provider.dart';
 import '../../providers/LocaleProvider.dart';
+// ignore: unused_import
+import '../../l10n/app_localizations.dart';
 
 class ProfilePage extends StatefulWidget {
   final UserModel user;
@@ -33,6 +35,7 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isEditing = false;
   final FirebaseService _firebaseService = FirebaseService();
   final String userId = FirebaseAuth.instance.currentUser!.uid;
+  String lang = 'fr';
 
   @override
   void initState() {
@@ -753,40 +756,53 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPersonalInfoSection() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Informations personnelles',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+    return AnimatedContainer(
+    duration: const Duration(milliseconds: 300),
+    curve: Curves.easeInOut,
+    margin: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      boxShadow: [
+        BoxShadow(
+          color: _isEditing 
+            ? Colors.green.withOpacity(0.2) 
+            : Colors.grey.withOpacity(0.1),
+          spreadRadius: _isEditing ? 2 : 1,
+          blurRadius: _isEditing ? 8 : 5,
+        ),
+      ],
+      border: _isEditing 
+        ? Border.all(color: Colors.green.shade200, width: 1)
+        : null,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Informations personnelles',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-                IconButton(
+              ),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return ScaleTransition(scale: animation, child: child);
+                },
+                child: IconButton(
+                  key: ValueKey<bool>(_isEditing),
                   icon: Icon(_isEditing ? Icons.save : Icons.edit),
                   onPressed: _handleEditProfile,
                   color: Colors.green,
                 ),
+              )
               ],
             ),
           ),
@@ -897,71 +913,73 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPreferencesSection(BuildContext context) {
-    final localeProvider = Provider.of<LocaleProvider>(context);
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'Préférences',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+  return Consumer<LocaleProvider>(
+    builder: (context, localeProvider, child) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Préférences',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-          _buildPreferenceItem(
-            icon: Icons.notifications,
-            title: 'Notifications',
-            isSwitch: true,
-            onTap: () {},
-          ),
-          _buildMenuDivider(),
-          _buildPreferenceItem(
-            icon: Icons.language,
-            title: 'Langue',
-            value:  localeProvider.getLanguageName(localeProvider.locale),
-            onTap: () => _showLanguageDialog(context),
-          ),
-          _buildMenuDivider(),
-          _buildPreferenceItem(
-            icon: Icons.dark_mode,
-            title: 'Thème sombre',
-            isSwitch: true,
-            onTap: () {},
-          ),
-          _buildMenuDivider(),
-          _buildPreferenceItem(
-            icon: Icons.logout,
-            title: 'Déconnexion',
-            color: Colors.orange,
-            onTap: () => _handleLogout(context),
-          ),
-          _buildMenuDivider(),
-          _buildPreferenceItem(
-            icon: Icons.delete_forever,
-            title: 'Supprimer le compte',
-            color: Colors.red,
-            onTap: () => _handleDeleteAccount(context),
-          ),
-        ],
-      ),
-    );
-  }
+            _buildPreferenceItem(
+              icon: Icons.notifications,
+              title: 'Notifications',
+              isSwitch: true,
+              onTap: () {},
+            ),
+            _buildMenuDivider(),
+            _buildPreferenceItem(
+              icon: Icons.language,
+              title: 'Langue',
+              value: localeProvider.getLanguageName(localeProvider.locale),
+              onTap: () => _showLanguageDialog(context),
+            ),
+            _buildMenuDivider(),
+            _buildPreferenceItem(
+              icon: Icons.dark_mode,
+              title: 'Thème sombre',
+              isSwitch: true,
+              onTap: () {},
+            ),
+            _buildMenuDivider(),
+            _buildPreferenceItem(
+              icon: Icons.logout,
+              title: 'Déconnexion',
+              color: Colors.orange,
+              onTap: () => _handleLogout(context),
+            ),
+            _buildMenuDivider(),
+            _buildPreferenceItem(
+              icon: Icons.delete_forever,
+              title: 'Supprimer le compte',
+              color: Colors.red,
+              onTap: () => _handleDeleteAccount(context),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   void _showLanguageDialog(BuildContext context) {
     final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
@@ -978,6 +996,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 title: const Text('Français'),
                 onTap: () {
                   localeProvider.setLocale(const Locale('fr'));
+                  lang = 'fr';
                   Navigator.of(context).pop();
                 },
               ),
@@ -985,20 +1004,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 title: const Text('English'),
                 onTap: () {
                   localeProvider.setLocale(const Locale('en'));
-                  Navigator.of(context).pop();
-                },
-              ),
-              ListTile(
-                title: const Text('العربية'),
-                onTap: () {
-                  localeProvider.setLocale(const Locale('ar'));
-                  Navigator.of(context).pop();
-                },
-              ),
-              ListTile(
-                title: const Text('Español'),
-                onTap: () {
-                  localeProvider.setLocale(const Locale('es'));
+                  lang = 'en';
                   Navigator.of(context).pop();
                 },
               ),
