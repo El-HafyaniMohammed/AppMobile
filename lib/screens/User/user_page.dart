@@ -7,8 +7,11 @@ import 'phone_verification_dialog.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart'; // For picking files
-import 'package:permission_handler/permission_handler.dart' as permission_handler; // For handling permissions
+import 'package:permission_handler/permission_handler.dart'
+    as permission_handler; // For handling permissions
 import '../../services/firebase_service.dart';
+import 'package:provider/provider.dart';
+import '../../providers/LocaleProvider.dart';
 
 class ProfilePage extends StatefulWidget {
   final UserModel user;
@@ -50,8 +53,10 @@ class _ProfilePageState extends State<ProfilePage> {
       if (userDoc.exists) {
         final userData = userDoc.data() ?? {};
         setState(() {
-          _nameController.text = userData['displayName'] ?? _formatName(widget.user.email.split('@').first);
-          _phoneController.text = userData['phoneNumber'] ?? currentUser.phoneNumber ?? '';
+          _nameController.text = userData['displayName'] ??
+              _formatName(widget.user.email.split('@').first);
+          _phoneController.text =
+              userData['phoneNumber'] ?? currentUser.phoneNumber ?? '';
         });
       } else {
         _nameController.text = _formatName(widget.user.email.split('@').first);
@@ -94,7 +99,8 @@ class _ProfilePageState extends State<ProfilePage> {
           if (!RegExp(r'^\+212[5-7][0-9]{8}$').hasMatch(phoneNumber)) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Format de numéro marocain invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
+                content: Text(
+                    'Format de numéro marocain invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -106,7 +112,8 @@ class _ProfilePageState extends State<ProfilePage> {
             final verified = await showDialog<bool>(
               context: context,
               barrierDismissible: false,
-              builder: (context) => PhoneVerificationDialog(phoneNumber: phoneNumber),
+              builder: (context) =>
+                  PhoneVerificationDialog(phoneNumber: phoneNumber),
             );
 
             if (verified != true) {
@@ -116,7 +123,8 @@ class _ProfilePageState extends State<ProfilePage> {
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Format de numéro invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
+              content: Text(
+                  'Format de numéro invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
               backgroundColor: Colors.red,
             ),
           );
@@ -129,7 +137,8 @@ class _ProfilePageState extends State<ProfilePage> {
         if (currentUser != null) {
           List<String> nameParts = _nameController.text.trim().split(' ');
           String firstName = nameParts.first;
-          String lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          String lastName =
+              nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
           await FirebaseFirestore.instance
               .collection('users')
@@ -176,7 +185,8 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!kIsWeb) {
       var status = await permission_handler.Permission.photos.request();
       if (status.isGranted) {
-        final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+        final pickedFile =
+            await ImagePicker().pickImage(source: ImageSource.gallery);
         if (pickedFile != null) {
           // ignore: avoid_print
           print('Image sélectionnée (Mobile): ${pickedFile.path}');
@@ -362,7 +372,8 @@ class _ProfilePageState extends State<ProfilePage> {
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Impossible de récupérer l\'email de l\'utilisateur.'),
+                  content: Text(
+                      'Impossible de récupérer l\'email de l\'utilisateur.'),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -376,7 +387,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 errorMessage = 'Mot de passe incorrect.';
                 break;
               case 'too-many-requests':
-                errorMessage = 'Trop de tentatives. Veuillez réessayer plus tard.';
+                errorMessage =
+                    'Trop de tentatives. Veuillez réessayer plus tard.';
                 break;
               default:
                 errorMessage = e.message ?? 'Une erreur est survenue.';
@@ -396,7 +408,8 @@ class _ProfilePageState extends State<ProfilePage> {
   String _formatName(String rawName) {
     String cleanedName = rawName.replaceAll(RegExp(r'[0-9.]'), '');
     cleanedName = cleanedName.replaceAll(RegExp(r'[_-]'), ' ');
-    List<String> words = cleanedName.split(' ').where((word) => word.isNotEmpty).toList();
+    List<String> words =
+        cleanedName.split(' ').where((word) => word.isNotEmpty).toList();
     List<String> capitalizedWords = words.map((word) {
       return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
     }).toList();
@@ -490,10 +503,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: CircleAvatar(
                           radius: 50,
                           backgroundImage: _selectedImage != null
-                              ? FileImage(_selectedImage!) // Afficher l'image sélectionnée
+                              ? FileImage(
+                                  _selectedImage!) // Afficher l'image sélectionnée
                               : (user.photoURL != null
-                                  ? NetworkImage(user.photoURL!) as ImageProvider<Object>
-                                  : const NetworkImage('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcyI9Cvp53aaP9XeRn-ZKbJDH2QaWC72O26A&s') as ImageProvider<Object>),
+                                  ? NetworkImage(user.photoURL!)
+                                      as ImageProvider<Object>
+                                  : const NetworkImage(
+                                          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcyI9Cvp53aaP9XeRn-ZKbJDH2QaWC72O26A&s')
+                                      as ImageProvider<Object>),
                         ),
                       ),
                       Container(
@@ -600,11 +617,16 @@ class _ProfilePageState extends State<ProfilePage> {
             future: _firebaseService.getFavoritesCount(userId),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildStatItem(icon: Icons.favorite, value: '...', label: 'Favoris');
+                return _buildStatItem(
+                    icon: Icons.favorite, value: '...', label: 'Favoris');
               } else if (snapshot.hasError) {
-                return _buildStatItem(icon: Icons.favorite, value: '0', label: 'Favoris');
+                return _buildStatItem(
+                    icon: Icons.favorite, value: '0', label: 'Favoris');
               } else {
-                return _buildStatItem(icon: Icons.favorite, value: snapshot.data.toString() , label: 'Favoris');
+                return _buildStatItem(
+                    icon: Icons.favorite,
+                    value: snapshot.data.toString(),
+                    label: 'Favoris');
               }
             },
           ),
@@ -695,13 +717,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap
-  }) {
+  Widget _buildMenuItem(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required Color color,
+      required VoidCallback onTap}) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -876,6 +897,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildPreferencesSection(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       decoration: BoxDecoration(
@@ -912,8 +934,8 @@ class _ProfilePageState extends State<ProfilePage> {
           _buildPreferenceItem(
             icon: Icons.language,
             title: 'Langue',
-            value: 'Français',
-            onTap: () {},
+            value:  localeProvider.getLanguageName(localeProvider.locale),
+            onTap: () => _showLanguageDialog(context),
           ),
           _buildMenuDivider(),
           _buildPreferenceItem(
@@ -938,6 +960,52 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Choose Language'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('Français'),
+                onTap: () {
+                  localeProvider.setLocale(const Locale('fr'));
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                title: const Text('English'),
+                onTap: () {
+                  localeProvider.setLocale(const Locale('en'));
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                title: const Text('العربية'),
+                onTap: () {
+                  localeProvider.setLocale(const Locale('ar'));
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                title: const Text('Español'),
+                onTap: () {
+                  localeProvider.setLocale(const Locale('es'));
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
