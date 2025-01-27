@@ -1,0 +1,48 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+apply plugin: 'com.google.gms.google-services'
+
+android {
+    namespace = "com.example.firstproject"
+    compileSdk = 34  // إصدار compileSdk المحدث
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11  // تم تحديثه إلى Java 11
+        targetCompatibility = JavaVersion.VERSION_11  // تم تحديثه إلى Java 11
+    }
+
+    kotlinOptions {
+        jvmTarget = '11'  // تم تحديثه إلى Java 11
+    }
+
+    defaultConfig {
+        applicationId = "com.example.firstproject"
+        minSdkVersion = 23  // تم تحديثه إلى 23
+        targetSdkVersion = 34  // إصدار targetSdk المحدث
+        versionCode = 1  // تم تحديثه ليتوافق مع ملف pubspec.yaml
+        versionName = "1.0.0"  // تم تحديثه ليتوافق مع ملف pubspec.yaml
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')  // إضافة Firebase BOM
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-storage'
+    implementation 'com.google.firebase:firebase-messaging'
+    implementation 'com.google.firebase:firebase-auth'
+}
