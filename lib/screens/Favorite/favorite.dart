@@ -4,6 +4,8 @@ import 'package:project/models/product.dart';
 import 'package:project/services/firebase_service.dart'; // Adjust the path as necessary
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../Home/des.dart';
+
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
 
@@ -44,7 +46,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
     }
   }
 
-  Future<void> updateProductFavoriteStatus(String productId, bool isFavorite) async {
+  Future<void> updateProductFavoriteStatus(
+      String productId, bool isFavorite) async {
     try {
       await _firestore.collection('products').doc(productId).update({
         'isFavorite': isFavorite,
@@ -276,7 +279,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Discover Products', style: TextStyle(fontSize: 16, color: Colors.white)),
+            child: const Text('Discover Products',
+                style: TextStyle(fontSize: 16, color: Colors.white)),
           ),
         ],
       ),
@@ -293,7 +297,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
         crossAxisSpacing: 16,
       ),
       itemCount: favoriteProducts.length,
-      itemBuilder: (context, index) => _buildProductCard(favoriteProducts[index]),
+      itemBuilder: (context, index) =>
+          _buildProductCard(favoriteProducts[index]),
     );
   }
 
@@ -302,144 +307,165 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
       padding: const EdgeInsets.all(16),
       itemCount: favoriteProducts.length,
       separatorBuilder: (_, __) => const SizedBox(height: 16),
-      itemBuilder: (context, index) => _buildProductListItem(favoriteProducts[index]),
+      itemBuilder: (context, index) =>
+          _buildProductListItem(favoriteProducts[index]),
     );
   }
 
   Widget _buildProductCard(Product product) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(product: product),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                _buildProductImage(product),
-                _buildFavoriteButton(product),
-                if (product.isOnSale) _buildSaleTag(),
-              ],
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade200,
+              blurRadius: 10,
+              offset: const Offset(0, 5),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  product.brand,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _buildPriceRow(product),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductListItem(Product product) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Stack(
+                children: [
+                  _buildProductImage(product),
+                  _buildFavoriteButton(product),
+                  if (product.isOnSale) _buildSaleTag(),
+                ],
               ),
             ),
-            child: Stack(
-              children: [
-                Center(
-                  child: Image.asset(
-                    product.imagePath,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                if (product.isOnSale) _buildSaleTag(),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
+            Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          product.name,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      _buildFavoriteButton(product),
-                    ],
+                  Text(
+                    product.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     product.brand,
                     style: TextStyle(
                       color: Colors.grey[600],
-                      fontSize: 14,
+                      fontSize: 12,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildPriceColumn(product),
-                      _buildAddToCartButton(product),
-                    ],
-                  ),
+                  _buildPriceRow(product),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductListItem(Product product) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailPage(product: product),
           ),
-        ],
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade200,
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  bottomLeft: Radius.circular(16),
+                ),
+              ),
+              child: Stack(
+                children: [
+                  Center(
+                    child: Image.asset(
+                      product.imagePath,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  if (product.isOnSale) _buildSaleTag(),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            product.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        _buildFavoriteButton(product),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      product.brand,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildPriceColumn(product),
+                        _buildAddToCartButton(product),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -475,7 +501,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
 
           // Mettre à jour la liste locale des favoris
           setState(() {
-            removeFromFavorites(FirebaseAuth.instance.currentUser!.uid, product.id);
+            removeFromFavorites(
+                FirebaseAuth.instance.currentUser!.uid, product.id);
           });
 
           // Afficher un message à l'utilisateur
@@ -538,7 +565,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
             style: TextStyle(
               fontSize: 12,
               decoration: TextDecoration.lineThrough,
-              color: Colors.grey[600],            ),
+              color: Colors.grey[600],
+            ),
           ),
         ] else
           Text(
@@ -553,7 +581,12 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
 
   Future<void> removeFromFavorites(String userId, String productId) async {
     try {
-      await _firestore.collection('users').doc(userId).collection('favorites').doc(productId).delete();
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc(productId)
+          .delete();
       setState(() {
         favoriteProducts.removeWhere((product) => product.id == productId);
       });
@@ -628,7 +661,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
                       value: selectedSize,
                       onChanged: (value) {
                         setState(() {
-                          selectedSize = value; // Mettre à jour la taille sélectionnée
+                          selectedSize =
+                              value; // Mettre à jour la taille sélectionnée
                         });
                       },
                       items: product.sizes.map((size) {
@@ -645,7 +679,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
                       value: selectedColor,
                       onChanged: (value) {
                         setState(() {
-                          selectedColor = value; // Mettre à jour la couleur sélectionnée
+                          selectedColor =
+                              value; // Mettre à jour la couleur sélectionnée
                         });
                       },
                       items: product.colors.map((color) {
@@ -676,7 +711,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
                           color: selectedColor,
                         );
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${product.name} added to cart')),
+                          SnackBar(
+                              content: Text('${product.name} added to cart')),
                         );
                         Navigator.pop(context);
                       } catch (e) {
