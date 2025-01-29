@@ -6,10 +6,11 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/user_model.dart';
 // ignore: unused_import
-import 'user_page.dart';
+import 'ProfilePage.dart';
 import '../main_screen.dart';
 import 'ForgotPasswordPage.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'privacy_and_terms.dart';
 
 // For mobile image picker
@@ -169,82 +170,95 @@ class _LoginContentState extends State<LoginContent> {
   // ignore: unused_element
   Future<void> _handleGoogleSignIn() async {
     try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+      // Configuration spécifique selon la plateforme
+      late GoogleSignIn googleSignIn;
 
-      // Démarrer le processus de connexion Google
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (kIsWeb) {
+        // Configuration spécifique Web
+        googleSignIn = GoogleSignIn(
+          clientId: '91685874776-3lo33sk1f2dlndovk9i01p11lih11m6d.apps.googleusercontent.com',
+          scopes: [
+            'email',
+            'profile'
+          ]
+        );
+      } else {
+        // Configuration mobile
+        googleSignIn = GoogleSignIn();
+      }
+
+      // Processus de connexion
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
-        // L'utilisateur a annulé la connexion
-        setState(() => _isLoading = false);
+        // Connexion annulée par l'utilisateur
         return;
       }
 
-      // Obtenir les détails d'authentification
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // Obtenir les credentials d'authentification
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       // Créer les credentials Firebase
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      // Connecter avec Firebase
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      // ignore: unused_local_variable
-      final user =
-          UserModel.fromFirebaseUser(FirebaseAuth.instance.currentUser!);
-      if (mounted) {
-        // Naviguer vers l'écran principal
+
+      // Connexion Firebase
+      final UserCredential userCredential = 
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+      if (userCredential.user != null) {
+        // Créer un UserModel
+        final user = UserModel(
+          uid: userCredential.user!.uid,
+          email: userCredential.user!.email ?? 'no-email',
+          isEmailVerified: userCredential.user!.emailVerified,
+        );
+
+        // Navigation
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MainScreen(user: user)),
         );
 
-        // Afficher un message de succès
+        // Message de succès
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Successfully logged in with Google'),
+            content: Text('Connexion réussie'),
             backgroundColor: Colors.green,
           ),
         );
       }
     } catch (e) {
-      String errorMessage;
+      // Gestion détaillée des erreurs
+      print('Erreur de connexion Google : $e');
+
+      String errorMessage = 'Une erreur est survenue';
+
       if (e is FirebaseAuthException) {
         switch (e.code) {
           case 'account-exists-with-different-credential':
-            errorMessage = 'An account already exists with this email.';
+            errorMessage = 'Un compte existe déjà avec cet email';
             break;
           case 'invalid-credential':
-            errorMessage = 'Invalid credentials.';
+            errorMessage = 'Identifiants invalides';
             break;
           case 'operation-not-allowed':
-            errorMessage = 'Google sign-in is not enabled.';
-            break;
-          case 'user-disabled':
-            errorMessage = 'This account has been disabled.';
-            break;
-          case 'user-not-found':
-            errorMessage = 'No user found for this email.';
+            errorMessage = 'Connexion Google non autorisée';
             break;
           default:
-            errorMessage = 'An error occurred during Google sign-in.';
+            errorMessage = e.message ?? 'Erreur de connexion';
         }
-      } else {
-        errorMessage = 'An unexpected error occurred. Please try again.';
       }
 
-      if (mounted) {
-        setState(() => _error = errorMessage);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      // Afficher l'erreur
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 

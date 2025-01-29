@@ -1,10 +1,10 @@
 // ignore: unused_import
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:project/screens/User/user_page.dart';
+import 'package:project/screens/User/ProfilePage.dart';
 import 'screens/main_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/User/profile.dart';
+import 'screens/User/Login_and_Signin.dart';
 import './screens/Home/home.dart';
 import 'models/user_model.dart';
 import 'screens/User/payment_page.dart';
@@ -63,4 +63,5 @@ class MyApp extends StatelessWidget {
       return UserModel(uid: 'no-uid', email: 'no-email', isEmailVerified: false);
     }
   }
+  
 }

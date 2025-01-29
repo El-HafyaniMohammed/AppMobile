@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import './Home/home.dart';
 import 'Cart/cart.dart';
 import 'Favorite/favorite.dart';
-import 'User/profile.dart';
-import 'User/user_page.dart';// Remplacez par la classe correcte.
+import 'User/Login_and_Signin.dart';
+import 'User/ProfilePage.dart';// Remplacez par la classe correcte.
 import '../models/user_model.dart';
 class MainScreen extends StatefulWidget {
   final UserModel user;
