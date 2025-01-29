@@ -6,10 +6,10 @@ class OrderTrackingPage extends StatelessWidget {
   final List<OrderStatus> statuses;
 
   const OrderTrackingPage({
-    Key? key, 
+    super.key, 
     required this.orderId, 
     required this.statuses,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

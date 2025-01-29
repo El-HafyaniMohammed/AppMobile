@@ -231,7 +231,7 @@ class _PaymentPageState extends State<PaymentPage> {
               ],
             ),
           ),
-          ButtonBar(
+          OverflowBar(
             children: [
               TextButton(
                 onPressed: () => _editPaymentMethod(paymentMethod),

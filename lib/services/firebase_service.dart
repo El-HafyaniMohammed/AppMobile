@@ -1,30 +1,140 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/product.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../models/cart_item.dart';
 import '../models/Address_User.dart';
 import '../models/PaymentMethod.dart';
+import 'dart:io';
 
 class FirebaseService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  // Method to get user data from Firestore
+  Future<Map<String, dynamic>> getUserData(String userId) async {
+    try {
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        return userDoc.data() as Map<String, dynamic>;
+      } else {
+        throw Exception('User not found');
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch user data: $e');
+    }
+  }
+
+  // Method to update the user's profile image
+  Future<void> updateProfileImage(File imageFile) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) throw Exception('User not logged in');
+
+      // Upload image to Firebase Storage
+      String fileName = 'profile_images/${user.uid}.jpg';
+      Reference storageRef = _storage.ref().child(fileName);
+      await storageRef.putFile(imageFile);
+
+      // Get the download URL
+      String downloadURL = await storageRef.getDownloadURL();
+
+      // Update user profile with the new image URL
+      await _firestore.collection('users').doc(user.uid).update({
+        'photoURL': downloadURL,
+      });
+
+      // Update Firebase Auth profile
+      await user.updatePhotoURL(downloadURL);
+    } catch (e) {
+      throw Exception('Failed to update profile image: $e');
+    }
+  }
+    // Method to update user profile data in Firestore
+  Future<void> updateUserProfile(
+    String userId,
+    String displayName,
+    String phoneNumber,
+  ) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) throw Exception('User not logged in');
+
+      // Update Firestore user data
+      await _firestore.collection('users').doc(userId).update({
+        'displayName': displayName,
+        'phoneNumber': phoneNumber,
+      });
+
+      // Optionally, update Firebase Auth profile (displayName)
+      await user.updateDisplayName(displayName);
+    } catch (e) {
+      throw Exception('Failed to update user profile: $e');
+    }
+  }
+
+  // Method to sign out the user
+  Future<void> signOut() async {
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      throw Exception('Failed to sign out: $e');
+    }
+  }
+
+  // Method to delete the user's account
+  Future<void> deleteAccount(String userId) async {
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) throw Exception('User not logged in');
+
+      // Delete user data from Firestore
+      await _firestore.collection('users').doc(userId).delete();
+
+      // Delete the user's profile image from Firebase Storage (if it exists)
+      try {
+        String fileName = 'profile_images/${user.uid}.jpg';
+        await _storage.ref().child(fileName).delete();
+      } catch (e) {
+        // If the file doesn't exist, ignore the error
+        print('No profile image found to delete: $e');
+      }
+
+      // Delete the user's account from Firebase Auth
+      await user.delete();
+    } catch (e) {
+      throw Exception('Failed to delete account: $e');
+    }
+  }
 
   // Récupérer tous les produits
   Future<List<Product>> getProducts() async {
     try {
       final querySnapshot = await _firestore.collection('products').get();
+      
       return querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        // ignore: unnecessary_null_comparison
-        if (data != null) {
-          return Product.fromMap(data);
-        } else {
-          throw Exception('Product data is null');
+        try {
+          // ignore: unnecessary_cast
+          final data = doc.data() as Map<String, dynamic>;
+          // ignore: unnecessary_null_comparison
+          if (data != null) {
+            return Product.fromMap(data);
+          } else {
+            throw Exception('Product data is null for document ID: ${doc.id}');
+          }
+        } catch (e) {
+          print('Erreur lors de la conversion d’un produit (ID: ${doc.id}): $e');
+          return null; // Retourner null si un produit est invalide
         }
-      }).toList();
+      }).where((product) => product != null).cast<Product>().toList();
+      
     } catch (e) {
       print('Erreur lors de la récupération des produits: $e');
-      return [];
+      return []; // Retourner une liste vide en cas d'échec
     }
   }
+
 
   // Récupérer les catégories
   Future<List<String>> getCategories() async {

@@ -10,11 +10,11 @@ class Product {
   final String category;
   int quantity;
   final String description;
-  double deliveryTime;
-  final List<String> colors; // Tableau de couleurs disponibles
+  final double deliveryTime;
+  final List<String> colors;
   final List<String> sizes;
-  final Map<String, double> sizePrices; // Map of sizes to their prices
-  final Map<String, double> colorPrices; // Map of colors to their prices // Tableau de tailles disponibles
+  final Map<String, double> sizePrices;
+  final Map<String, double> colorPrices;
 
   Product({
     required this.id,
@@ -29,30 +29,30 @@ class Product {
     this.quantity = 1,
     required this.description,
     required this.deliveryTime,
-    this.colors = const [], // Initialisation par défaut d'un tableau vide
-    this.sizes = const [], // Initialisation par défaut d'un tableau vide
-    this.sizePrices = const {}, // Initialisation par défaut d'une map vide
-    this.colorPrices = const {}, // Initialisation par défaut d'une map vide
+    this.colors = const [],
+    this.sizes = const [],
+    this.sizePrices = const {},
+    this.colorPrices = const {},
   });
 
   factory Product.fromMap(Map<String, dynamic> map) {
     return Product(
-      id: map['id'],
-      name: map['name'],
-      brand: map['brand'],
+      id: map['id'] as String,
+      name: map['name'] as String,
+      brand: map['brand'] as String,
       price: (map['price'] as num).toDouble(),
       rating: (map['rating'] as num).toDouble(),
-      imagePath: map['imagePath'],
-      isOnSale: map['isOnSale'],
+      imagePath: map['imagePath'] as String,
+      isOnSale: map['isOnSale'] as bool? ?? false,
       salePrice: (map['salePrice'] as num?)?.toDouble(),
-      category: map['category'],
-      quantity: map['quantity'],
-      description: map['description'],
+      category: map['category'] as String,
+      quantity: map['quantity'] as int? ?? 1,
+      description: map['description'] as String,
       deliveryTime: (map['deliveryTime'] as num).toDouble(),
-      colors: List<String>.from(map['colors'] ?? []), // Charger les couleurs depuis Firestore
-      sizes: List<String>.from(map['sizes'] ?? []), // Charger les tailles depuis Firestore
-      sizePrices: Map<String, double>.from(map['sizePrices'] ?? {}), // Charger les prix des tailles depuis Firestore
-      colorPrices: Map<String, double>.from(map['colorPrices'] ?? {}), // Charger les prix des couleurs depuis Firestore
+      colors: List<String>.from(map['colors'] ?? []),
+      sizes: List<String>.from(map['sizes'] ?? []),
+      sizePrices: Map<String, double>.from(map['sizePrices'] ?? {}),
+      colorPrices: Map<String, double>.from(map['colorPrices'] ?? {}),
     );
   }
 
@@ -70,19 +70,61 @@ class Product {
       'quantity': quantity,
       'description': description,
       'deliveryTime': deliveryTime,
-      'colors': colors, // Sérialiser les couleurs
-      'sizes': sizes, // Sérialiser les tailles
-      'sizePrices': sizePrices, // Sérialiser les prix des tailles
-      'colorPrices': colorPrices, // Sérialiser les prix des couleurs
+      'colors': colors,
+      'sizes': sizes,
+      'sizePrices': sizePrices,
+      'colorPrices': colorPrices,
     };
   }
-  get displayPrice {
-    return isOnSale ? (salePrice ?? price) : price;
+
+  factory Product.fromJson(Map<String, dynamic> json) {
+    return Product(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      brand: json['brand'] as String,
+      price: (json['price'] as num).toDouble(),
+      rating: (json['rating'] as num).toDouble(),
+      imagePath: json['imagePath'] as String,
+      isOnSale: json['isOnSale'] as bool? ?? false,
+      salePrice: (json['salePrice'] as num?)?.toDouble(),
+      category: json['category'] as String,
+      quantity: json['quantity'] as int? ?? 1,
+      description: json['description'] as String,
+      deliveryTime: (json['deliveryTime'] as num).toDouble(),
+      colors: List<String>.from(json['colors'] ?? []),
+      sizes: List<String>.from(json['sizes'] ?? []),
+      sizePrices: Map<String, double>.from(json['sizePrices'] ?? {}),
+      colorPrices: Map<String, double>.from(json['colorPrices'] ?? {}),
+    );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'brand': brand,
+      'price': price,
+      'rating': rating,
+      'imagePath': imagePath,
+      'isOnSale': isOnSale,
+      'salePrice': salePrice,
+      'category': category,
+      'quantity': quantity,
+      'description': description,
+      'deliveryTime': deliveryTime,
+      'colors': colors,
+      'sizes': sizes,
+      'sizePrices': sizePrices,
+      'colorPrices': colorPrices,
+    };
+  }
+
+  double get displayPrice => isOnSale ? (salePrice ?? price) : price;
+
   Product copyWith({
     String? selectedSize,
     String? selectedColor,
-  }){
+  }) {
     return Product(
       id: id,
       name: name,
@@ -102,40 +144,4 @@ class Product {
       colorPrices: colorPrices,
     );
   }
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'brand': brand,
-    'price': price,
-    'rating': rating,
-    'imagePath': imagePath,
-    'isOnSale': isOnSale,
-    'salePrice': salePrice,
-    'category': category,
-    'quantity': quantity,
-    'description': description,
-    'deliveryTime': deliveryTime,
-    'colors': colors,
-    'sizes': sizes,
-    'sizePrices': sizePrices,
-    'colorPrices': colorPrices,
-  };
-   factory Product.fromJson(Map<String, dynamic> json) => Product(
-    id: json['id'],
-    name: json['name'],
-    brand: json['brand'],
-    price: json['price'],
-    rating: json['rating'],
-    imagePath: json['imagePath'],
-    isOnSale: json['isOnSale'],
-    salePrice: json['salePrice'],
-    category: json['category'],
-    quantity: json['quantity'],
-    description: json['description'],
-    deliveryTime: json['deliveryTime'],
-    colors: json['colors'],
-    sizes: json['sizes'],
-    sizePrices: json['sizePrices'],
-    colorPrices: json['colorPrices'],
-   );
 }

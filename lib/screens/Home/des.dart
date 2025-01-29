@@ -160,7 +160,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'product-image-${widget.product.id}',
-                child: Image.network(
+                child: Image.asset(
                   widget.product.imagePath,
                   fit: BoxFit.cover,
                 ),
