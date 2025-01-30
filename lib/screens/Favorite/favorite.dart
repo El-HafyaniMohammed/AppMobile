@@ -4,7 +4,7 @@ import 'package:project/models/product.dart';
 import 'package:project/services/firebase_service.dart'; // Adjust the path as necessary
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../Home/des.dart';
+import '../Home/ProductDetailPage.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});

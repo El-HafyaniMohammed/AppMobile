@@ -7,9 +7,11 @@ import 'phone_verification_dialog.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart'; // For picking files
-import 'package:permission_handler/permission_handler.dart' as permission_handler; // For handling permissions
+import 'package:permission_handler/permission_handler.dart'
+    as permission_handler; // For handling permissions
 import 'package:device_info_plus/device_info_plus.dart'; // For device info
 import '../../services/firebase_service.dart';
+
 class ProfilePage extends StatefulWidget {
   final UserModel user;
 
@@ -49,8 +51,10 @@ class _ProfilePageState extends State<ProfilePage> {
       if (userDoc.exists) {
         final userData = userDoc.data() ?? {};
         setState(() {
-          _nameController.text = userData['displayName'] ?? _formatName(widget.user.email.split('@').first);
-          _phoneController.text = userData['phoneNumber'] ?? currentUser.phoneNumber ?? '';
+          _nameController.text = userData['displayName'] ??
+              _formatName(widget.user.email.split('@').first);
+          _phoneController.text =
+              userData['phoneNumber'] ?? currentUser.phoneNumber ?? '';
         });
       } else {
         _nameController.text = _formatName(widget.user.email.split('@').first);
@@ -93,7 +97,8 @@ class _ProfilePageState extends State<ProfilePage> {
           if (!RegExp(r'^\+212[5-7][0-9]{8}$').hasMatch(phoneNumber)) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Format de numéro marocain invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
+                content: Text(
+                    'Format de numéro marocain invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -105,7 +110,8 @@ class _ProfilePageState extends State<ProfilePage> {
             final verified = await showDialog<bool>(
               context: context,
               barrierDismissible: false,
-              builder: (context) => PhoneVerificationDialog(phoneNumber: phoneNumber),
+              builder: (context) =>
+                  PhoneVerificationDialog(phoneNumber: phoneNumber),
             );
 
             if (verified != true) {
@@ -115,7 +121,8 @@ class _ProfilePageState extends State<ProfilePage> {
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Format de numéro invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
+              content: Text(
+                  'Format de numéro invalide. Utilisez le format 06XXXXXXXX ou 07XXXXXXXX'),
               backgroundColor: Colors.red,
             ),
           );
@@ -128,7 +135,8 @@ class _ProfilePageState extends State<ProfilePage> {
         if (currentUser != null) {
           List<String> nameParts = _nameController.text.trim().split(' ');
           String firstName = nameParts.first;
-          String lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          String lastName =
+              nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
           await FirebaseFirestore.instance
               .collection('users')
@@ -172,94 +180,94 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> pickImage() async {
-  if (!kIsWeb) {
-    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+    if (!kIsWeb) {
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
 
-    List<permission_handler.Permission> permissions = [
-      permission_handler.Permission.camera,
-      permission_handler.Permission.storage,
-      if (Platform.isAndroid && androidInfo.version.sdkInt >= 33)
-        permission_handler.Permission.photos,
-    ];
+      List<permission_handler.Permission> permissions = [
+        permission_handler.Permission.camera,
+        permission_handler.Permission.storage,
+        if (Platform.isAndroid && androidInfo.version.sdkInt >= 33)
+          permission_handler.Permission.photos,
+      ];
 
-    Map<permission_handler.Permission, permission_handler.PermissionStatus> statuses = await permissions.request();
-    
-    if (statuses.values.every((status) => status.isGranted)) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Choisir une source'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                ListTile(
-                  leading: const Icon(Icons.camera),
-                  title: const Text('Caméra'),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    final pickedFile = await ImagePicker().pickImage(
-                      source: ImageSource.camera,
-                      imageQuality: 85,
-                    );
-                    _processPickedFile(pickedFile);
-                  },
+      Map<permission_handler.Permission, permission_handler.PermissionStatus>
+          statuses = await permissions.request();
+
+      if (statuses.values.every((status) => status.isGranted)) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Choisir une source'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  ListTile(
+                    leading: const Icon(Icons.camera),
+                    title: const Text('Caméra'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final pickedFile = await ImagePicker().pickImage(
+                        source: ImageSource.camera,
+                        imageQuality: 85,
+                      );
+                      _processPickedFile(pickedFile);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.photo_library),
+                    title: const Text('Galerie'),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      final pickedFile = await ImagePicker().pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 85,
+                      );
+                      _processPickedFile(pickedFile);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      } else {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Permissions requises'),
+              content: const Text(
+                'Pour utiliser cette fonctionnalité, vous devez autoriser l\'accès à la caméra et au stockage dans les paramètres de l\'application.',
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('Annuler'),
+                  onPressed: () => Navigator.pop(context),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Galerie'),
-                  onTap: () async {
+                TextButton(
+                  child: const Text('Ouvrir les paramètres'),
+                  onPressed: () {
                     Navigator.pop(context);
-                    final pickedFile = await ImagePicker().pickImage(
-                      source: ImageSource.gallery,
-                      imageQuality: 85,
-                    );
-                    _processPickedFile(pickedFile);
+                    permission_handler.openAppSettings();
                   },
                 ),
               ],
-            ),
-          );
-        },
-      );
+            );
+          },
+        );
+      }
     } else {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Permissions requises'),
-            content: const Text(
-              'Pour utiliser cette fonctionnalité, vous devez autoriser l\'accès à la caméra et au stockage dans les paramètres de l\'application.',
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Annuler'),
-                onPressed: () => Navigator.pop(context),
-              ),
-              TextButton(
-                child: const Text('Ouvrir les paramètres'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  permission_handler.openAppSettings();
-                },
-              ),
-            ],
-          );
-        },
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
       );
-    }
-  } else {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-    );
 
-    if (result != null && result.files.isNotEmpty) {
-      _processWebFile(result.files.first);
+      if (result != null && result.files.isNotEmpty) {
+        _processWebFile(result.files.first);
+      }
     }
   }
-}
-
 
   Future<void> _processPickedFile(XFile? pickedFile) async {
     if (pickedFile != null) {
@@ -446,7 +454,8 @@ class _ProfilePageState extends State<ProfilePage> {
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Impossible de récupérer l\'email de l\'utilisateur.'),
+                  content: Text(
+                      'Impossible de récupérer l\'email de l\'utilisateur.'),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -460,7 +469,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 errorMessage = 'Mot de passe incorrect.';
                 break;
               case 'too-many-requests':
-                errorMessage = 'Trop de tentatives. Veuillez réessayer plus tard.';
+                errorMessage =
+                    'Trop de tentatives. Veuillez réessayer plus tard.';
                 break;
               default:
                 errorMessage = e.message ?? 'Une erreur est survenue.';
@@ -480,7 +490,8 @@ class _ProfilePageState extends State<ProfilePage> {
   String _formatName(String rawName) {
     String cleanedName = rawName.replaceAll(RegExp(r'[0-9.]'), '');
     cleanedName = cleanedName.replaceAll(RegExp(r'[_-]'), ' ');
-    List<String> words = cleanedName.split(' ').where((word) => word.isNotEmpty).toList();
+    List<String> words =
+        cleanedName.split(' ').where((word) => word.isNotEmpty).toList();
     List<String> capitalizedWords = words.map((word) {
       return '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}';
     }).toList();
@@ -599,8 +610,10 @@ class _ProfilePageState extends State<ProfilePage> {
                             backgroundImage: _selectedImage != null
                                 ? FileImage(_selectedImage!)
                                 : (user.photoURL != null
-                                    ? NetworkImage(user.photoURL!) as ImageProvider<Object>
-                                    : const NetworkImage('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcyI9Cvp53aaP9XeRn-ZKbJDH2QaWC72O26A&s')),
+                                    ? NetworkImage(user.photoURL!)
+                                        as ImageProvider<Object>
+                                    : const NetworkImage(
+                                        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcyI9Cvp53aaP9XeRn-ZKbJDH2QaWC72O26A&s')),
                           ),
                         ),
                       ),
@@ -704,7 +717,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
- Widget _buildStats() {
+  Widget _buildStats() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -847,13 +860,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap
-  }) {
+  Widget _buildMenuItem(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required Color color,
+      required VoidCallback onTap}) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -885,16 +897,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildPersonalInfoSection() {
     return Container(
-      margin: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -902,44 +914,63 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Informations personnelles',
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
                 IconButton(
-                  icon: Icon(_isEditing ? Icons.save : Icons.edit),
+                  icon: Icon(
+                    _isEditing ? Icons.check_rounded : Icons.edit_outlined,
+                    size: 22,
+                  ),
                   onPressed: _handleEditProfile,
-                  color: Colors.green,
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.green.shade50,
+                    foregroundColor: Colors.green.shade600,
+                    padding: const EdgeInsets.all(8),
+                  ),
                 ),
               ],
             ),
           ),
-          _buildEditableInfoItem(
-            title: 'Nom complet',
-            controller: _nameController,
-            icon: Icons.person,
-            enabled: _isEditing,
-          ),
-          _buildMenuDivider(),
-          _buildInfoItem(
-            title: 'Email',
-            value: widget.user.email,
-            icon: Icons.email,
-          ),
-          _buildMenuDivider(),
-          _buildEditableInfoItem(
-            title: 'Téléphone',
-            controller: _phoneController,
-            icon: Icons.phone,
-            enabled: _isEditing,
-            keyboardType: TextInputType.phone,
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                _buildEditableInfoItem(
+                  title: 'Nom complet',
+                  controller: _nameController,
+                  icon: Icons.person_outline,
+                  enabled: _isEditing,
+                ),
+                _buildInfoDivider(),
+                _buildInfoItem(
+                  title: 'Email',
+                  value: widget.user.email,
+                  icon: Icons.email_outlined,
+                ),
+                _buildInfoDivider(),
+                _buildEditableInfoItem(
+                  title: 'Téléphone',
+                  controller: _phoneController,
+                  icon: Icons.phone_outlined,
+                  enabled: _isEditing,
+                  keyboardType: TextInputType.phone,
+                  isLastItem: true,
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -952,43 +983,66 @@ class _ProfilePageState extends State<ProfilePage> {
     required IconData icon,
     required bool enabled,
     TextInputType keyboardType = TextInputType.text,
+    bool isLastItem = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.green, size: 20),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
-                  ),
+    final color = Colors.green.shade600;
+    
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                TextField(
-                  controller: controller,
-                  enabled: enabled,
-                  keyboardType: keyboardType,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    TextField(
+                      controller: controller,
+                      enabled: enabled,
+                      keyboardType: keyboardType,
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        hintText: 'Entrez votre ${title.toLowerCase()}',
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 15,
+                        ),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        if (!isLastItem)
+          _buildInfoDivider(),
+      ],
     );
   }
 
@@ -996,100 +1050,143 @@ class _ProfilePageState extends State<ProfilePage> {
     required String title,
     required String value,
     required IconData icon,
+    bool isLastItem = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.green, size: 20),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final color = Colors.green.shade600;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
+                child: Icon(icon, color: color, size: 22),
               ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        if (!isLastItem)
+          _buildInfoDivider(),
+      ],
+    );
+  }
+
+  Widget _buildInfoDivider() {
+    return Divider(
+      height: 1,
+      indent: 56,
+      endIndent: 16,
+      color: Colors.grey.shade200,
     );
   }
 
   Widget _buildPreferencesSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
             child: Text(
               'Préférences',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
             ),
           ),
-          _buildPreferenceItem(
-            icon: Icons.notifications,
-            title: 'Notifications',
-            isSwitch: true,
-            onTap: () {},
-          ),
-          _buildMenuDivider(),
-          _buildPreferenceItem(
-            icon: Icons.language,
-            title: 'Langue',
-            value: 'Français',
-            onTap: () {},
-          ),
-          _buildMenuDivider(),
-          _buildPreferenceItem(
-            icon: Icons.dark_mode,
-            title: 'Thème sombre',
-            isSwitch: true,
-            onTap: () {},
-          ),
-          _buildMenuDivider(),
-          _buildPreferenceItem(
-            icon: Icons.logout,
-            title: 'Déconnexion',
-            color: Colors.orange,
-            onTap: () => _handleLogout(context),
-          ),
-          _buildMenuDivider(),
-          _buildPreferenceItem(
-            icon: Icons.delete_forever,
-            title: 'Supprimer le compte',
-            color: Colors.red,
-            onTap: () => _handleDeleteAccount(context),
-          ),
+          _buildPreferenceGroup([
+            _buildPreferenceItem(
+              icon: Icons.notifications_outlined,
+              title: 'Notifications',
+              isSwitch: true,
+              onTap: () {},
+            ),
+            _buildPreferenceItem(
+              icon: Icons.language_outlined,
+              title: 'Langue',
+              value: 'Français',
+              onTap: () {},
+            ),
+            _buildPreferenceItem(
+              icon: Icons.dark_mode_outlined,
+              title: 'Thème sombre',
+              isSwitch: true,
+              onTap: () {},
+            ),
+          ]),
+          const SizedBox(height: 16),
+          _buildPreferenceGroup([
+            _buildPreferenceItem(
+              icon: Icons.logout_outlined,
+              title: 'Déconnexion',
+              color: Colors.orange.shade700,
+              onTap: () => _handleLogout(context),
+            ),
+            _buildPreferenceItem(
+              icon: Icons.delete_outline,
+              title: 'Supprimer le compte',
+              color: Colors.red.shade600,
+              onTap: () => _handleDeleteAccount(context),
+              isLastItem: true,
+            ),
+          ]),
         ],
       ),
+    );
+  }
+
+  Widget _buildPreferenceGroup(List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(children: children),
     );
   }
 
@@ -1100,29 +1197,59 @@ class _ProfilePageState extends State<ProfilePage> {
     bool isSwitch = false,
     Color color = Colors.blue,
     required void Function() onTap,
+    bool isLastItem = false,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      trailing: isSwitch
-          ? Switch(
-              value: true,
-              onChanged: (value) {},
-              activeColor: Colors.blue,
-            )
-          : value != null
-              ? Text(
-                  value,
-                  style: const TextStyle(color: Colors.grey),
+    return Column(
+      children: [
+        ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w500,
+              fontSize: 16,
+            ),
+          ),
+          trailing: isSwitch
+              ? Switch.adaptive(
+                  value: true,
+                  onChanged: (value) {},
+                  activeColor: Colors.blue,
+                  activeTrackColor: Colors.blue.withOpacity(0.2),
                 )
-              : const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: isSwitch ? null : onTap,
+              : value != null
+                  ? Text(
+                      value,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 15,
+                      ),
+                    )
+                  : Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.grey.shade400,
+                    ),
+          onTap: isSwitch ? null : onTap,
+        ),
+        if (!isLastItem)
+          Divider(
+            height: 1,
+            indent: 56,
+            endIndent: 16,
+            color: Colors.grey.shade200,
+          ),
+      ],
     );
   }
 

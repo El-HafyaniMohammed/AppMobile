@@ -5,7 +5,7 @@ import '../../config/AppStyles.dart' as config;
 import '../../widgets/product_card.dart';
 import '../../services/firebase_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'des.dart';
+import 'ProductDetailPage.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -160,44 +160,118 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
   // Widget pour l'en-tête de la page
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text('Discover', style: config.AppStyles.headerText),
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => NotificationPage()),
-                );
-              },
-            ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: const Text(
-                  '2',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          offset: const Offset(0, 2),
+          blurRadius: 8,
+        ),
+      ],
+    ),
+    child: SafeArea(
+      child: Row(
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  // Pour une image depuis les assets
+                  image: DecorationImage(
+                    image: AssetImage('assets/img/9game_logo.png'),
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Discover',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    'Explore new opportunities',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const Spacer(),
+          _buildNotificationBell(),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildNotificationBell() {
+  return GestureDetector(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => NotificationPage()),
+      );
+    },
+    child: Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        children: [
+          Icon(
+            Icons.notifications_outlined,
+            color: Colors.grey.shade700,
+            size: 24,
+          ),
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.red.shade500,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white,
+                  width: 1.5,
+                ),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: const Text(
+                '2',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-          ],
-        ),
-      ],
-    );
-  }
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   // Widget pour la barre de recherche
   Widget _buildSearchBar() {
@@ -230,79 +304,198 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
   // Widget pour la bannière de vente
   Widget _buildSalesBanner() {
-    return Container(
-      width: double.infinity,
-      height: 180,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+  return Container(
+    height: 180,
+    margin: const EdgeInsets.symmetric(horizontal: 20),
+    child: Stack(
+      children: [
+        // Main container with gradient
+        Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF4CAF50).withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
         ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -30,
-            bottom: 0,
-            child: Image.asset(
-              'assets/img/product_6.png',
-              height: 160,
-              fit: BoxFit.contain,
+
+        // Background pattern
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: CustomPaint(
+              painter: GridPatternPainter(),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Flash Sale',
+        ),
+
+        // Content
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Timer badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: const Icon(
+                        Icons.timer_outlined,
+                        color: Color(0xFF4CAF50),
+                        size: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Limited time offer',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Main text
+              ShaderMask(
+                shaderCallback: (Rect bounds) {
+                  return const LinearGradient(
+                    colors: [Colors.white, Color(0xFFE8F5E9)],
+                  ).createShader(bounds);
+                },
+                child: const Text(
+                  'Up to 50% OFF',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Up to 50% off on\nselected items',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                  ),
+              ),
+              
+              const SizedBox(height: 4),
+              Text(
+                'on selected items',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
                 ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 12,
+              ),
+              
+              const Spacer(),
+              
+              // Action button
+              Row(
+                children: [
+                  Container(
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(100),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Shop Now',
+                          style: TextStyle(
+                            color: const Color(0xFF4CAF50),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4CAF50).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Color(0xFF4CAF50),
+                            size: 16,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: const Text(
-                    'Shop Now',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Decorative circles
+        Positioned(
+          right: -30,
+          top: -30,
+          child: Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 2,
+              ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+        Positioned(
+          right: -45,
+          top: -45,
+          child: Container(
+            width: 160,
+            height: 160,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+                width: 2,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   // Widget pour la section des catégories
   Widget _buildCategoriesSection() {
@@ -543,4 +736,35 @@ class _DiscoverPageState extends State<DiscoverPage> {
       },
     );
   }
+}
+
+// Custom painter for grid pattern
+class GridPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..strokeWidth = 1;
+
+    const spacing = 15.0;
+    
+    for (double i = 0; i < size.width; i += spacing) {
+      canvas.drawLine(
+        Offset(i, 0),
+        Offset(i, size.height),
+        paint,
+      );
+    }
+    
+    for (double i = 0; i < size.height; i += spacing) {
+      canvas.drawLine(
+        Offset(0, i),
+        Offset(size.width, i),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
