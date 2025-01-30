@@ -216,49 +216,67 @@ class UserModel {
            country != null &&
            postalCode != null;
   }
-   Future<String?> uploadImage(dynamic imageFile) async {
-    try {
-      // Générer un nom de fichier unique
-      String fileName = 'profile_images/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
 
+  // Méthode pour téléverser l'image
+  Future<String?> uploadImage(dynamic imageFile) async {
+    try {
+      if (imageFile == null) {
+        throw Exception('Aucun fichier image fourni');
+      }
+
+      // Vérifier le type de l'image
+      print('Début du téléversement de l\'image');
+
+      String fileName = 'profile_images/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      print('Nom du fichier généré : $fileName');
+      
       // Référence à Firebase Storage
       Reference storageReference = FirebaseStorage.instance.ref().child(fileName);
 
       if (kIsWeb) {
-        // Gestion du téléversement sur le web
+        // Téléversement sur le web
         if (imageFile is PlatformFile) {
+          print('Fichier détecté pour le web');
+          
           // Convertir PlatformFile en Uint8List
           final Uint8List fileBytes = imageFile.bytes!;
           final metadata = SettableMetadata(contentType: 'image/jpeg');
+          
+          // Téléverser l'image
           UploadTask uploadTask = storageReference.putData(fileBytes, metadata);
           TaskSnapshot taskSnapshot = await uploadTask;
+          uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+            print('Progression du téléversement : ${snapshot.bytesTransferred}/${snapshot.totalBytes}');
+          });
+
+          // Obtenir l'URL de téléchargement
           String downloadURL = await taskSnapshot.ref.getDownloadURL();
+          print('URL de téléchargement pour le web : $downloadURL');
           return downloadURL;
         } else {
           throw Exception('Type de fichier non supporté pour le web');
         }
       } else {
-        // Gestion du téléversement sur mobile
+        // Téléversement sur mobile
         if (imageFile is File) {
+          print('Fichier détecté pour mobile');
+          
+          // Téléverser l'image
           UploadTask uploadTask = storageReference.putFile(imageFile);
           TaskSnapshot taskSnapshot = await uploadTask;
+          
+          // Obtenir l'URL de téléchargement
           String downloadURL = await taskSnapshot.ref.getDownloadURL();
+          print('URL de téléchargement pour mobile : $downloadURL');
           return downloadURL;
         } else {
           throw Exception('Type de fichier non supporté pour mobile');
         }
       }
     } catch (e) {
-      // ignore: avoid_print
+      // Capturer l'erreur
       print('Erreur lors du téléversement de l\'image: $e');
-      if (e is FirebaseException) {
-        // ignore: avoid_print
-        print('Code d\'erreur Firebase: ${e.code}');
-        // ignore: avoid_print
-        print('Message d\'erreur Firebase: ${e.message}');
-      }
       return null;
     }
   }
-  
 }

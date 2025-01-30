@@ -483,7 +483,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
                           ),
                           const SizedBox(height: 16),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(12),

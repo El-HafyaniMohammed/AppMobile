@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart'; // For picking files
 import 'package:permission_handler/permission_handler.dart' as permission_handler; // For handling permissions
+import 'package:device_info_plus/device_info_plus.dart'; // For device info
 import '../../services/firebase_service.dart';
 class ProfilePage extends StatefulWidget {
   final UserModel user;
@@ -171,53 +172,138 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> pickImage() async {
-    if (!kIsWeb) {
-      var status = await permission_handler.Permission.photos.request();
-      if (status.isGranted) {
-        final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-        if (pickedFile != null) {
-          // ignore: avoid_print
-          print('Image sélectionnée (Mobile): ${pickedFile.path}');
-          String? downloadURL = await user.uploadImage(File(pickedFile.path));
-          if (downloadURL != null) {
-            // ignore: avoid_print
-            print('URL de l\'image téléversée: $downloadURL');
-            await user.updateUserInfo(newPhotoURL: downloadURL);
-            setState(() {
-              user.photoURL = downloadURL;
-            });
-            // ignore: avoid_print
-            print('Profil mis à jour avec la nouvelle image');
-          } else {
-            // ignore: avoid_print
-            print('Erreur lors du téléversement de l\'image');
-          }
-        }
-      }
-    } else {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-      );
+  if (!kIsWeb) {
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
 
-      if (result != null && result.files.isNotEmpty) {
-        PlatformFile file = result.files.first;
-        // ignore: avoid_print
-        print('Image sélectionnée (Web): ${file.name}');
-        String? downloadURL = await user.uploadImage(file);
-        if (downloadURL != null) {
-          // ignore: avoid_print
-          print('URL de l\'image téléversée: $downloadURL');
-          await user.updateUserInfo(newPhotoURL: downloadURL);
-          setState(() {
-            user.photoURL = downloadURL;
-          });
-          // ignore: avoid_print
-          print('Profil mis à jour avec la nouvelle image');
-        } else {
-          // ignore: avoid_print
-          print('Erreur lors du téléversement de l\'image');
-        }
+    List<permission_handler.Permission> permissions = [
+      permission_handler.Permission.camera,
+      permission_handler.Permission.storage,
+      if (Platform.isAndroid && androidInfo.version.sdkInt >= 33)
+        permission_handler.Permission.photos,
+    ];
+
+    Map<permission_handler.Permission, permission_handler.PermissionStatus> statuses = await permissions.request();
+    
+    if (statuses.values.every((status) => status.isGranted)) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Choisir une source'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.camera),
+                  title: const Text('Caméra'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final pickedFile = await ImagePicker().pickImage(
+                      source: ImageSource.camera,
+                      imageQuality: 85,
+                    );
+                    _processPickedFile(pickedFile);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Galerie'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    final pickedFile = await ImagePicker().pickImage(
+                      source: ImageSource.gallery,
+                      imageQuality: 85,
+                    );
+                    _processPickedFile(pickedFile);
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } else {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Permissions requises'),
+            content: const Text(
+              'Pour utiliser cette fonctionnalité, vous devez autoriser l\'accès à la caméra et au stockage dans les paramètres de l\'application.',
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Annuler'),
+                onPressed: () => Navigator.pop(context),
+              ),
+              TextButton(
+                child: const Text('Ouvrir les paramètres'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  permission_handler.openAppSettings();
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+  } else {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+    );
+
+    if (result != null && result.files.isNotEmpty) {
+      _processWebFile(result.files.first);
+    }
+  }
+}
+
+
+  Future<void> _processPickedFile(XFile? pickedFile) async {
+    if (pickedFile != null) {
+      String? downloadURL = await user.uploadImage(File(pickedFile.path));
+      if (downloadURL != null) {
+        setState(() {
+          user.photoURL = downloadURL;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Photo de profil mise à jour avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erreur lors de la mise à jour de la photo'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
+    }
+  }
+
+  Future<void> _processWebFile(PlatformFile file) async {
+    String? downloadURL = await user.uploadImage(file);
+    if (downloadURL != null) {
+      setState(() {
+        user.photoURL = downloadURL;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo de profil mise à jour avec succès'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erreur lors de la mise à jour de la photo'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -411,10 +497,13 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               children: [
                 _buildStats(),
+                const SizedBox(height: 16),
                 _buildMenuSection(),
+                const SizedBox(height: 16),
                 _buildPersonalInfoSection(),
+                const SizedBox(height: 16),
                 _buildPreferencesSection(context),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -425,18 +514,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildAppBar(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 280,
+      expandedHeight: 300,
       floating: false,
       pinned: true,
       backgroundColor: Colors.transparent,
+      elevation: 0,
       actions: [
         IconButton(
-          icon: const Icon(Icons.logout),
+          icon: const Icon(Icons.logout, color: Colors.white),
           onPressed: () => _handleLogout(context),
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
         background: Stack(
+          fit: StackFit.expand,
           children: [
             Container(
               decoration: BoxDecoration(
@@ -444,13 +535,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.green.shade800,
+                    Colors.green.shade900,
+                    Colors.green.shade700,
                     Colors.green.shade500,
-                    Colors.green.shade300,
                   ],
                 ),
               ),
             ),
+            // Decorative circles
             Positioned(
               right: -50,
               top: -50,
@@ -459,12 +551,25 @@ class _ProfilePageState extends State<ProfilePage> {
                 height: 200,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withOpacity(0.15),
                 ),
               ),
             ),
             Positioned(
-              bottom: 60,
+              left: -30,
+              bottom: -30,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+              ),
+            ),
+            // Profile content
+            Positioned(
+              bottom: 48,
               left: 0,
               right: 0,
               child: Column(
@@ -473,7 +578,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     alignment: Alignment.bottomRight,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(2),
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
@@ -481,24 +586,36 @@ class _ProfilePageState extends State<ProfilePage> {
                             BoxShadow(
                               color: Colors.black.withOpacity(0.2),
                               spreadRadius: 2,
-                              blurRadius: 8,
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundImage: _selectedImage != null
-                              ? FileImage(_selectedImage!) // Afficher l'image sélectionnée
-                              : (user.photoURL != null
-                                  ? NetworkImage(user.photoURL!) as ImageProvider<Object>
-                                  : const NetworkImage('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcyI9Cvp53aaP9XeRn-ZKbJDH2QaWC72O26A&s') as ImageProvider<Object>),
+                        child: Hero(
+                          tag: 'profile_image',
+                          child: CircleAvatar(
+                            radius: 55,
+                            backgroundColor: Colors.white,
+                            backgroundImage: _selectedImage != null
+                                ? FileImage(_selectedImage!)
+                                : (user.photoURL != null
+                                    ? NetworkImage(user.photoURL!) as ImageProvider<Object>
+                                    : const NetworkImage('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcyI9Cvp53aaP9XeRn-ZKbJDH2QaWC72O26A&s')),
+                          ),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.green,
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade500,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              spreadRadius: 1,
+                              blurRadius: 5,
+                            ),
+                          ],
                         ),
                         child: IconButton(
                           icon: const Icon(
@@ -507,7 +624,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             size: 20,
                           ),
                           onPressed: pickImage,
-                          color: Colors.blue,
                         ),
                       ),
                     ],
@@ -515,27 +631,27 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 16),
                   Text(
                     _formatName(user.email.split('@').first),
-                    style: TextStyle(
-                      fontSize: 24,
+                    style: const TextStyle(
+                      fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                       shadows: [
                         Shadow(
-                          offset: Offset(0, 1),
-                          blurRadius: 3,
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
                           color: Colors.black26,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
                         user.email,
                         style: const TextStyle(
-                          color: Colors.white70,
+                          color: Colors.white,
                           fontSize: 16,
                         ),
                       ),
@@ -543,19 +659,38 @@ class _ProfilePageState extends State<ProfilePage> {
                       if (user.isEmailVerified)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
+                            horizontal: 10,
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.green,
+                            color: Colors.green.shade400,
                             borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                spreadRadius: 1,
+                                blurRadius: 3,
+                              ),
+                            ],
                           ),
-                          child: const Text(
-                            'Vérifié',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Vérifié',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                     ],
@@ -569,19 +704,19 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStats() {
+ Widget _buildStats() {
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
+            color: Colors.grey.withOpacity(0.08),
+            spreadRadius: 2,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -589,21 +724,30 @@ class _ProfilePageState extends State<ProfilePage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildStatItem(
-              icon: Icons.shopping_bag, value: '12', label: 'Commandes'),
+            icon: Icons.shopping_bag,
+            value: '12',
+            label: 'Commandes',
+            color: Colors.blue.shade700,
+          ),
           _buildVerticalDivider(),
           _buildStatItem(
-              icon: Icons.local_shipping, value: '2', label: 'En cours'),
+            icon: Icons.local_shipping,
+            value: '2',
+            label: 'En cours',
+            color: Colors.orange.shade700,
+          ),
           _buildVerticalDivider(),
           FutureBuilder<int>(
             future: _firebaseService.getFavoritesCount(userId),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildStatItem(icon: Icons.favorite, value: '...', label: 'Favoris');
-              } else if (snapshot.hasError) {
-                return _buildStatItem(icon: Icons.favorite, value: '0', label: 'Favoris');
-              } else {
-                return _buildStatItem(icon: Icons.favorite, value: snapshot.data.toString(), label: 'Favoris');
-              }
+              return _buildStatItem(
+                icon: Icons.favorite,
+                value: snapshot.connectionState == ConnectionState.waiting
+                    ? '...'
+                    : snapshot.data?.toString() ?? '0',
+                label: 'Favoris',
+                color: Colors.red.shade700,
+              );
             },
           ),
         ],
@@ -615,24 +759,34 @@ class _ProfilePageState extends State<ProfilePage> {
     required IconData icon,
     required String value,
     required String label,
+    required Color color,
   }) {
     return Column(
       children: [
-        Icon(icon, color: Colors.green, size: 24),
-        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(height: 12),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 20,
+          style: TextStyle(
+            fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: color,
           ),
         ),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 12,
+            color: Colors.grey.shade600,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],
