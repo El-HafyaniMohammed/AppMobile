@@ -7,7 +7,7 @@ plugins {
 apply plugin: 'com.google.gms.google-services'
 
 android {
-    namespace = "com.example.firstproject"
+    namespace = "com.example.project"
     compileSdk = 34  // إصدار compileSdk المحدث
 
     compileOptions {
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.firstproject"
+        applicationId = "com.example.project"
         minSdkVersion = 23  // تم تحديثه إلى 23
         targetSdkVersion = 34  // إصدار targetSdk المحدث
         versionCode = 1  // تم تحديثه ليتوافق مع ملف pubspec.yaml

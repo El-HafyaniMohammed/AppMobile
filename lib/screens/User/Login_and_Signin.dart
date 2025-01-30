@@ -10,7 +10,6 @@ import 'ProfilePage.dart';
 import '../main_screen.dart';
 import 'ForgotPasswordPage.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'privacy_and_terms.dart';
 
 // For mobile image picker
@@ -170,24 +169,13 @@ class _LoginContentState extends State<LoginContent> {
   // ignore: unused_element
   Future<void> _handleGoogleSignIn() async {
     try {
-      // Configuration spécifique selon la plateforme
-      late GoogleSignIn googleSignIn;
+      // Créer une instance de GoogleSignIn
+      final GoogleSignIn googleSignIn = GoogleSignIn();
 
-      if (kIsWeb) {
-        // Configuration spécifique Web
-        googleSignIn = GoogleSignIn(
-          clientId: '91685874776-3lo33sk1f2dlndovk9i01p11lih11m6d.apps.googleusercontent.com',
-          scopes: [
-            'email',
-            'profile'
-          ]
-        );
-      } else {
-        // Configuration mobile
-        googleSignIn = GoogleSignIn();
-      }
+      // Déconnexion de l'utilisateur précédent, si connecté
+      await googleSignIn.signOut();
 
-      // Processus de connexion
+      // Lancer la connexion Google
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
       if (googleUser == null) {
@@ -195,7 +183,7 @@ class _LoginContentState extends State<LoginContent> {
         return;
       }
 
-      // Obtenir les credentials d'authentification
+      // Obtenir les informations d'authentification Google
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
       // Créer les credentials Firebase
@@ -204,19 +192,18 @@ class _LoginContentState extends State<LoginContent> {
         idToken: googleAuth.idToken,
       );
 
-      // Connexion Firebase
-      final UserCredential userCredential = 
-        await FirebaseAuth.instance.signInWithCredential(credential);
+      // Connexion avec Firebase
+      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (userCredential.user != null) {
-        // Créer un UserModel
+        // Créer un UserModel pour l'utilisateur
         final user = UserModel(
           uid: userCredential.user!.uid,
           email: userCredential.user!.email ?? 'no-email',
           isEmailVerified: userCredential.user!.emailVerified,
         );
 
-        // Navigation
+        // Navigation vers la page principale après connexion réussie
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => MainScreen(user: user)),
@@ -231,7 +218,7 @@ class _LoginContentState extends State<LoginContent> {
         );
       }
     } catch (e) {
-      // Gestion détaillée des erreurs
+      // Gestion des erreurs
       print('Erreur de connexion Google : $e');
 
       String errorMessage = 'Une erreur est survenue';
