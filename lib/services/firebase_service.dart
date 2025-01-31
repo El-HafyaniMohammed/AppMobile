@@ -15,7 +15,8 @@ class FirebaseService {
   // Method to get user data from Firestore
   Future<Map<String, dynamic>> getUserData(String userId) async {
     try {
-      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+      DocumentSnapshot userDoc =
+          await _firestore.collection('users').doc(userId).get();
       if (userDoc.exists) {
         return userDoc.data() as Map<String, dynamic>;
       } else {
@@ -25,7 +26,7 @@ class FirebaseService {
       throw Exception('Failed to fetch user data: $e');
     }
   }
-
+  
   // Method to update the user's profile image
   Future<void> updateProfileImage(File imageFile) async {
     try {
@@ -51,7 +52,8 @@ class FirebaseService {
       throw Exception('Failed to update profile image: $e');
     }
   }
-    // Method to update user profile data in Firestore
+
+  // Method to update user profile data in Firestore
   Future<void> updateUserProfile(
     String userId,
     String displayName,
@@ -112,29 +114,33 @@ class FirebaseService {
   Future<List<Product>> getProducts() async {
     try {
       final querySnapshot = await _firestore.collection('products').get();
-      
-      return querySnapshot.docs.map((doc) {
-        try {
-          // ignore: unnecessary_cast
-          final data = doc.data() as Map<String, dynamic>;
-          // ignore: unnecessary_null_comparison
-          if (data != null) {
-            return Product.fromMap(data);
-          } else {
-            throw Exception('Product data is null for document ID: ${doc.id}');
-          }
-        } catch (e) {
-          print('Erreur lors de la conversion d’un produit (ID: ${doc.id}): $e');
-          return null; // Retourner null si un produit est invalide
-        }
-      }).where((product) => product != null).cast<Product>().toList();
-      
+
+      return querySnapshot.docs
+          .map((doc) {
+            try {
+              // ignore: unnecessary_cast
+              final data = doc.data() as Map<String, dynamic>;
+              // ignore: unnecessary_null_comparison
+              if (data != null) {
+                return Product.fromMap(data);
+              } else {
+                throw Exception(
+                    'Product data is null for document ID: ${doc.id}');
+              }
+            } catch (e) {
+              print(
+                  'Erreur lors de la conversion d’un produit (ID: ${doc.id}): $e');
+              return null; // Retourner null si un produit est invalide
+            }
+          })
+          .where((product) => product != null)
+          .cast<Product>()
+          .toList();
     } catch (e) {
       print('Erreur lors de la récupération des produits: $e');
       return []; // Retourner une liste vide en cas d'échec
     }
   }
-
 
   // Récupérer les catégories
   Future<List<String>> getCategories() async {
@@ -279,6 +285,7 @@ class FirebaseService {
       return 0;
     }
   }
+
   // suprimer tous les favoris
   Future<void> clearFavorites(String userId) async {
     try {
@@ -296,6 +303,7 @@ class FirebaseService {
       rethrow;
     }
   }
+
   // Ajouter un produit au panier
   Future<void> addToCart(String userId, String productId,
       {int quantity = 1, String? size, String? color}) async {
@@ -408,7 +416,7 @@ class FirebaseService {
     }
   }
 
-/// recuperer les adresses de l'utilisateur actuel
+  /// recuperer les adresses de l'utilisateur actuel
   Future<List<AddressUser>> fetchAddresses(String userId) async {
     try {
       final addressesSnapshot = await _firestore
@@ -458,7 +466,8 @@ class FirebaseService {
           .collection('users')
           .doc(userId)
           .collection('addresses')
-          .where('addressId', isEqualTo: address.addressId) // Recherche par addressId
+          .where('addressId',
+              isEqualTo: address.addressId) // Recherche par addressId
           .get();
 
       // 2. Vérifier si un document a été trouvé
@@ -562,7 +571,7 @@ class FirebaseService {
       throw Exception('Failed to set default address');
     }
   }
-  
+
   /// recuperer les methodes de paiement
   Future<List<PaymentMethod>> fetchPaymentMethods(String userId) async {
     final snapshot = await _firestore
@@ -575,6 +584,7 @@ class FirebaseService {
         .map((doc) => PaymentMethod.fromMap(doc.data()))
         .toList();
   }
+
   /// ajouter une methode de paiement
   Future<void> addPaymentMethod({
     required PaymentMethod paymentMethod,
@@ -602,7 +612,7 @@ class FirebaseService {
   }
 
   /// supprimer une methode de paiement
-   Future<void> deletePaymentMethod({
+  Future<void> deletePaymentMethod({
     required String paymentMethodId,
     required String userId,
   }) async {
@@ -640,5 +650,22 @@ class FirebaseService {
     batch.update(paymentMethodRef, {'isDefault': true});
 
     await batch.commit();
+  }
+
+  Future<void> savePhotoURLToFirestore(String uid, String photoURL) async {
+    try {
+      // Reference to the user's document
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+
+      // Save the `photoURL` field as a string
+      await userDoc.set(
+        {'photoURL': photoURL},
+        SetOptions(merge: true), // Merge to avoid overwriting other fields
+      );
+
+      print('Photo URL successfully saved to Firestore.');
+    } catch (e) {
+      print('Error saving photo URL to Firestore: $e');
+    }
   }
 }

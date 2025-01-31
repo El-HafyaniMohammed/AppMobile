@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print, unnecessary_null_comparison
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -218,65 +220,58 @@ class UserModel {
   }
 
   // Méthode pour téléverser l'image
-  Future<String?> uploadImage(dynamic imageFile) async {
-    try {
-      if (imageFile == null) {
-        throw Exception('Aucun fichier image fourni');
-      }
-
-      // Vérifier le type de l'image
-      print('Début du téléversement de l\'image');
-
-      String fileName = 'profile_images/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
-      print('Nom du fichier généré : $fileName');
-      
-      // Référence à Firebase Storage
-      Reference storageReference = FirebaseStorage.instance.ref().child(fileName);
-
-      if (kIsWeb) {
-        // Téléversement sur le web
-        if (imageFile is PlatformFile) {
-          print('Fichier détecté pour le web');
-          
-          // Convertir PlatformFile en Uint8List
-          final Uint8List fileBytes = imageFile.bytes!;
-          final metadata = SettableMetadata(contentType: 'image/jpeg');
-          
-          // Téléverser l'image
-          UploadTask uploadTask = storageReference.putData(fileBytes, metadata);
-          TaskSnapshot taskSnapshot = await uploadTask;
-          uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-            print('Progression du téléversement : ${snapshot.bytesTransferred}/${snapshot.totalBytes}');
-          });
-
-          // Obtenir l'URL de téléchargement
-          String downloadURL = await taskSnapshot.ref.getDownloadURL();
-          print('URL de téléchargement pour le web : $downloadURL');
-          return downloadURL;
-        } else {
-          throw Exception('Type de fichier non supporté pour le web');
-        }
-      } else {
-        // Téléversement sur mobile
-        if (imageFile is File) {
-          print('Fichier détecté pour mobile');
-          
-          // Téléverser l'image
-          UploadTask uploadTask = storageReference.putFile(imageFile);
-          TaskSnapshot taskSnapshot = await uploadTask;
-          
-          // Obtenir l'URL de téléchargement
-          String downloadURL = await taskSnapshot.ref.getDownloadURL();
-          print('URL de téléchargement pour mobile : $downloadURL');
-          return downloadURL;
-        } else {
-          throw Exception('Type de fichier non supporté pour mobile');
-        }
-      }
-    } catch (e) {
-      // Capturer l'erreur
-      print('Erreur lors du téléversement de l\'image: $e');
-      return null;
+ Future<String?> uploadImage(dynamic imageFile) async {
+  try {
+    // Ensure the file is not null
+    if (imageFile == null) {
+      throw Exception('No image file was provided');
     }
+    print('Starting image upload...');
+
+    // Ensure UID is valid
+    if (uid.isEmpty) {
+      throw Exception('Invalid user ID provided.');
+    }
+
+    // Generate a valid file path
+    String fileName = 'profile_images/$uid/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    print('Generated file name: $fileName');
+
+    // Reference to Firebase Storage
+    Reference storageReference = FirebaseStorage.instance.ref().child(fileName);
+
+    UploadTask? uploadTask;
+
+    // Handle web upload or mobile upload based on platform
+    if (kIsWeb) {
+      if (imageFile is PlatformFile) {
+        // For web, use file bytes and metadata
+        final Uint8List fileBytes = imageFile.bytes!;
+        final metadata = SettableMetadata(contentType: 'image/jpeg');
+
+        uploadTask = storageReference.putData(fileBytes, metadata);
+      } else {
+        throw Exception('Invalid file type for web upload');
+      }
+    } else {
+      if (imageFile is File) {
+        // For mobile, use a File instance
+        uploadTask = storageReference.putFile(imageFile);
+      } else {
+        throw Exception('Invalid file type for mobile upload');
+      }
+    }
+
+    // Wait for the upload to complete
+    TaskSnapshot taskSnapshot = await uploadTask;
+    String downloadURL = await taskSnapshot.ref.getDownloadURL();
+    print('Image successfully uploaded to: $downloadURL');
+    return downloadURL;
+  } catch (e) {
+    // Log error and pass it back
+    print('Error during image upload: $e');
+    return null;
   }
+}
+
 }

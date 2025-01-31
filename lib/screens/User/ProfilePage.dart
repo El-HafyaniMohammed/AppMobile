@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user_model.dart';
@@ -180,138 +182,205 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> pickImage() async {
-    if (!kIsWeb) {
-      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+    try {
+      if (!kIsWeb) {
+        // Initialize DeviceInfoPlugin
+        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
 
-      List<permission_handler.Permission> permissions = [
-        permission_handler.Permission.camera,
-        permission_handler.Permission.storage,
-        if (Platform.isAndroid && androidInfo.version.sdkInt >= 33)
-          permission_handler.Permission.photos,
-      ];
+        // Define permissions to request
+        List<permission_handler.Permission> permissions = [
+          permission_handler.Permission.camera,
+          permission_handler.Permission.storage,
+          if (Platform.isAndroid && androidInfo.version.sdkInt >= 33)
+            permission_handler.Permission.photos,
+        ];
 
-      Map<permission_handler.Permission, permission_handler.PermissionStatus>
-          statuses = await permissions.request();
+        // Request permissions
+        Map<permission_handler.Permission, permission_handler.PermissionStatus> statuses =
+            await permissions.request();
 
-      if (statuses.values.every((status) => status.isGranted)) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Choisir une source'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  ListTile(
-                    leading: const Icon(Icons.camera),
-                    title: const Text('Caméra'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final pickedFile = await ImagePicker().pickImage(
-                        source: ImageSource.camera,
-                        imageQuality: 85,
-                      );
-                      _processPickedFile(pickedFile);
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.photo_library),
-                    title: const Text('Galerie'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      final pickedFile = await ImagePicker().pickImage(
-                        source: ImageSource.gallery,
-                        imageQuality: 85,
-                      );
-                      _processPickedFile(pickedFile);
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        );
+        // Check if all permissions are granted
+        if (statuses.values.every((status) => status.isGranted)) {
+          // Show source dialog
+          await _showImageSourceDialog();
+        } else {
+          // Display dialog if permissions are denied
+          await _showPermissionDialog();
+        }
       } else {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Permissions requises'),
-              content: const Text(
-                'Pour utiliser cette fonctionnalité, vous devez autoriser l\'accès à la caméra et au stockage dans les paramètres de l\'application.',
-              ),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('Annuler'),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                TextButton(
-                  child: const Text('Ouvrir les paramètres'),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    permission_handler.openAppSettings();
-                  },
-                ),
-              ],
-            );
-          },
+        // Handle web-based file picker
+        FilePickerResult? result = await FilePicker.platform.pickFiles(
+          type: FileType.image,
         );
-      }
-    } else {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-      );
 
-      if (result != null && result.files.isNotEmpty) {
-        _processWebFile(result.files.first);
+        if (result != null && result.files.isNotEmpty) {
+          _processWebFile(result.files.first);
+        }
       }
+    } catch (e) {
+      // Handle unexpected errors
+      print('Error in image picking: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Une erreur est survenue en sélectionnant l\'image.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  Future<void> _processPickedFile(XFile? pickedFile) async {
+  Future<void> _showPermissionDialog() async {
+  await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Permissions requises'),
+        content: const Text(
+          'Pour utiliser cette fonctionnalité, vous devez autoriser l\'accès à la caméra ou au stockage dans les paramètres de l\'application.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Annuler'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: const Text('Ouvrir les paramètres'),
+            onPressed: () async {
+              Navigator.pop(context);
+              await permission_handler.openAppSettings(); // Open app settings
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  Future<void> _showImageSourceDialog() async {
+  await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Choisir une source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.camera),
+              title: const Text('Caméra'),
+              onTap: () async {
+                Navigator.pop(context); // Close dialog
+                final pickedFile = await ImagePicker().pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 85,
+                );
+                _processPickedFile(pickedFile);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Galerie'),
+              onTap: () async {
+                Navigator.pop(context); // Close dialog
+                final pickedFile = await ImagePicker().pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 85,
+                );
+                _processPickedFile(pickedFile);
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+  void _processPickedFile(XFile? pickedFile) async {
     if (pickedFile != null) {
+      print('Image picked: ${pickedFile.path}');
+      
+      // Perform the upload (e.g., using `uploadImage` method)
       String? downloadURL = await user.uploadImage(File(pickedFile.path));
+
       if (downloadURL != null) {
+        // Update the user's photoURL in Firestore
+        await savePhotoURLToFirestore(userId, downloadURL);
+
+        // Optionally update UI
         setState(() {
           user.photoURL = downloadURL;
         });
+
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Photo de profil mise à jour avec succès'),
+            content: Text('Image mise à jour avec succès.'),
             backgroundColor: Colors.green,
           ),
         );
       } else {
+        // Handle upload failure
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Erreur lors de la mise à jour de la photo'),
+            content: Text('Échec du téléversement de l\'image.'),
             backgroundColor: Colors.red,
           ),
         );
       }
+    } else {
+      print('Aucune image sélectionnée.');
     }
   }
 
-  Future<void> _processWebFile(PlatformFile file) async {
-    String? downloadURL = await user.uploadImage(file);
+
+  void _processWebFile(PlatformFile platformFile) async {
+    print('Image selected: ${platformFile.name}');
+
+    // Upload the file (use the Uint8List for web-based uploads)
+    String? downloadURL = await user.uploadImage(platformFile);
+
     if (downloadURL != null) {
-      setState(() {
-        user.photoURL = downloadURL;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Photo de profil mise à jour avec succès'),
-          backgroundColor: Colors.green,
-        ),
+        await savePhotoURLToFirestore(userId, downloadURL);
+
+        // Update UI
+        setState(() {
+          user.photoURL = downloadURL;
+        });
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image mise à jour avec succès.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Handle upload failure
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Échec du téléversement de l\'image.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+  }
+
+  Future<void> savePhotoURLToFirestore(String uid, String photoURL) async {
+    try {
+      // Reference to the user's document
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+
+      // Save the `photoURL` field as a string
+      await userDoc.set(
+        {'photoURL': photoURL},
+        SetOptions(merge: true), // Merge to avoid overwriting other fields
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Erreur lors de la mise à jour de la photo'),
-          backgroundColor: Colors.red,
-        ),
-      );
+
+      print('Photo URL successfully saved to Firestore.');
+    } catch (e) {
+      print('Error saving photo URL to Firestore: $e');
     }
   }
 
