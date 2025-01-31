@@ -103,13 +103,6 @@ class _DiscoverPageState extends State<DiscoverPage> {
     return filteredProducts;
   }
 
-  // Fonction pour gérer le changement de catégorie
-  void _onCategorySelected(String category) {
-    setState(() {
-      selectedCategory = category;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final filteredProducts = _filterProducts();
@@ -133,7 +126,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
                       _buildSearchBar(),
                       const SizedBox(height: 24),
                       _buildSalesBanner(),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       _buildCategoriesSection(),
                     ],
                   ),
@@ -304,198 +297,225 @@ Widget _buildNotificationBell() {
 
   // Widget pour la bannière de vente
   Widget _buildSalesBanner() {
-  return Container(
-    height: 180,
-    margin: const EdgeInsets.symmetric(horizontal: 20),
-    child: Stack(
-      children: [
-        // Main container with gradient
-        Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF4CAF50).withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+    return Container(
+      height: 200,
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      child: Stack(
+        children: [
+          // Main container with gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-            ],
-          ),
-        ),
-
-        // Background pattern
-        Positioned.fill(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: CustomPaint(
-              painter: GridPatternPainter(),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF4CAF50).withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
           ),
-        ),
 
-        // Content
-        Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Timer badge
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
+          // Background pattern
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: CustomPaint(
+                painter: GridPatternPainter(),
+              ),
+            ),
+          ),
+
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Timer badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: const Icon(
+                          Icons.timer_outlined,
+                          color: Color(0xFF4CAF50),
+                          size: 14,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Limited time offer',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                
+                const SizedBox(height: 6),
+                
+                // Main text
+                ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return const LinearGradient(
+                      colors: [Colors.white, Color(0xFFE8F5E9)],
+                    ).createShader(bounds);
+                  },
+                  child: const Text(
+                    'Up to 50% OFF',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 4),
+                Text(
+                  'on selected items',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                
+                const Spacer(),
+                
+                // Review section
+                Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: const Icon(
-                        Icons.timer_outlined,
-                        color: Color(0xFF4CAF50),
-                        size: 14,
+                    // Star rating
+                    Row(
+                      children: List.generate(5, (index) => 
+                        Icon(
+                          Icons.star, 
+                          color: index < 4 ? Colors.amber : Colors.white24,
+                          size: 16,
+                        )
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Limited time offer',
+                    const SizedBox(width: 8),
+                    Text(
+                      '4.8 (256 reviews)',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
                 ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Main text
-              ShaderMask(
-                shaderCallback: (Rect bounds) {
-                  return const LinearGradient(
-                    colors: [Colors.white, Color(0xFFE8F5E9)],
-                  ).createShader(bounds);
-                },
-                child: const Text(
-                  'Up to 50% OFF',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 4),
-              Text(
-                'on selected items',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              
-              const Spacer(),
-              
-              // Action button
-              Row(
-                children: [
-                  Container(
-                    height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(100),
+                
+                const SizedBox(height: 8),
+                
+                // Action button
+                Row(
+                  children: [
+                    Container(
+                      height: 40,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Shop Now',
+                            style: TextStyle(
+                              color: const Color(0xFF4CAF50),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4CAF50).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Color(0xFF4CAF50),
+                              size: 16,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Shop Now',
-                          style: TextStyle(
-                            color: const Color(0xFF4CAF50),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4CAF50).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(100),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_rounded,
-                            color: Color(0xFF4CAF50),
-                            size: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
 
-        // Decorative circles
-        Positioned(
-          right: -30,
-          top: -30,
-          child: Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.1),
-                width: 2,
+          // Decorative circles
+          Positioned(
+            right: -30,
+            top: -30,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 2,
+                ),
               ),
             ),
           ),
-        ),
-        Positioned(
-          right: -45,
-          top: -45,
-          child: Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withOpacity(0.1),
-                width: 2,
+          Positioned(
+            right: -45,
+            top: -45,
+            child: Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.1),
+                  width: 2,
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   // Widget pour la section des catégories
   Widget _buildCategoriesSection() {
@@ -517,42 +537,59 @@ Widget _buildNotificationBell() {
             ),
           ],
         ),
-        const SizedBox(height: 16),
         SizedBox(
           height: 40,
-          child: ListView.builder(
+          child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: categories.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
-              return _buildCategoryChip(
-                categories[index],
-                isSelected: categories[index] == selectedCategory,
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                decoration: BoxDecoration(
+                  color: categories[index] == selectedCategory 
+                    ? AppColors.primary 
+                    : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: categories[index] == selectedCategory 
+                      ? Colors.transparent 
+                      : AppColors.primary.withOpacity(0.3),
+                    width: 1.5,
+                  ),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      setState(() {
+                        selectedCategory = categories[index];
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16, 
+                        vertical: 8
+                      ),
+                      child: Text(
+                        categories[index],
+                        style: TextStyle(
+                          color: categories[index] == selectedCategory 
+                            ? Colors.white 
+                            : AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               );
             },
           ),
         ),
       ],
-    );
-  }
-
-  // Widget pour un chip de catégorie
-  Widget _buildCategoryChip(String label, {bool isSelected = false}) {
-    return GestureDetector(
-      onTap: () => _onCategorySelected(label),
-      child: Container(
-        margin: const EdgeInsets.only(right: 12),
-        child: Chip(
-          label: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.black,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          backgroundColor: isSelected ? AppColors.primary : AppColors.secondary,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        ),
-      ),
     );
   }
 
@@ -738,7 +775,7 @@ Widget _buildNotificationBell() {
   }
 }
 
-// Custom painter for grid pattern
+// Custom painter for grid pattern (remains unchanged)
 class GridPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
