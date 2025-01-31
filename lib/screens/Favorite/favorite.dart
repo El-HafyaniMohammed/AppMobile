@@ -21,7 +21,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String _sortBy = 'name'; // 'name', 'price', 'brand'
   bool _isLoading = false;
-  String userId = FirebaseAuth.instance.currentUser!.uid;
+  String userId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
 
   @override
   @override
