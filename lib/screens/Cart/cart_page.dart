@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_types_as_parameter_names
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -240,17 +241,29 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
       appBar: AppBar(
         centerTitle: true,
         backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.shopping_cart_outlined, color: Colors.grey[800], size: 24),
-            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.shopping_cart_outlined, 
+                color: Colors.grey[800], 
+                size: 24
+              ),
+            ),
+            const SizedBox(width: 12),
             Text(
               'Shopping Cart',
               style: TextStyle(
                 color: Colors.grey[800],
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w700,
                 fontSize: 20,
               ),
             ),
@@ -258,11 +271,22 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
         ),
         actions: [
           if (cartItems.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: clearCart,
+                icon: Icon(
+                  Icons.delete_outline, 
+                  color: Colors.red.shade600
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  clearCart();
+                },
                 tooltip: 'Clear cart',
               ),
             ),
