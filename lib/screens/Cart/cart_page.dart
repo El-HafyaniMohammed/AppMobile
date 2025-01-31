@@ -100,9 +100,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
       _controller.forward(from: 0);
     } catch (e) {
       // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur lors de la mise à jour de la quantité: $e')),
-      );
+      
     } finally {
       setState(() {
         isLoading = false;
