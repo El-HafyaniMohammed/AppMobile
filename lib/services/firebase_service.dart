@@ -279,6 +279,23 @@ class FirebaseService {
       return 0;
     }
   }
+  // suprimer tous les favoris
+  Future<void> clearFavorites(String userId) async {
+    try {
+      final favoritesSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .get();
+
+      for (final doc in favoritesSnapshot.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      print('Erreur lors de la suppression des favoris: $e');
+      rethrow;
+    }
+  }
   // Ajouter un produit au panier
   Future<void> addToCart(String userId, String productId,
       {int quantity = 1, String? size, String? color}) async {

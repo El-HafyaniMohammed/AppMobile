@@ -21,6 +21,7 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String _sortBy = 'name'; // 'name', 'price', 'brand'
   bool _isLoading = false;
+  String userId = FirebaseAuth.instance.currentUser!.uid;
 
   @override
   @override
@@ -103,6 +104,7 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
             onPressed: () {
               setState(() {
                 favoriteProducts.clear();
+                _firebaseService.clearFavorites(userId);
               });
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
@@ -128,7 +130,8 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       centerTitle: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       leading: _buildAppBarButton(
         icon: Icons.arrow_back_ios_new,
@@ -137,12 +140,12 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
           MaterialPageRoute(builder: (context) => const MyApp()),
         ),
       ),
-      title: const Text(
+      title: Text(
         'Favorites',
         style: TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.w600,
-          fontSize: 18,
+          color: Colors.black87,
+          fontWeight: FontWeight.w700,
+          fontSize: 20,
         ),
       ),
       actions: [
@@ -152,7 +155,7 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
         ),
         _buildAppBarButton(
           icon: Icons.sort,
-          onPressed: () => _showSortingBottomSheet(),
+          onPressed: () => _showEnhancedSortingBottomSheet(),
         ),
         _buildAppBarButton(
           icon: Icons.delete_outline,
@@ -168,61 +171,135 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
     required VoidCallback? onPressed,
     Color? color,
   }) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: onPressed != null ? Colors.white : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: onPressed != null 
+            ? Colors.grey.shade200 
+            : Colors.grey.shade300,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
       child: IconButton(
-        icon: Icon(icon, color: color ?? Colors.black, size: 20),
+        icon: Icon(
+          icon, 
+          color: onPressed != null 
+            ? (color ?? Colors.black) 
+            : Colors.grey,
+          size: 20,
+        ),
         onPressed: onPressed,
       ),
     );
   }
 
-  void _showSortingBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+  void _showEnhancedSortingBottomSheet() {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+    ),
+    builder: (context) => DraggableScrollableSheet(
+      initialChildSize: 0.5,
+      minChildSize: 0.3,
+      maxChildSize: 0.75,
+      expand: false,
+      builder: (_, controller) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: ListView(
+          controller: controller,
           children: [
-            const Text(
-              'Sort by',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            Center(
+              child: Container(
+                width: 50,
+                height: 5,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Text(
+                'Sort Favorites',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
             _buildSortOption('Name', 'name'),
             _buildSortOption('Price', 'price'),
             _buildSortOption('Brand', 'brand'),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSortOption(String title, String value) {
-    return ListTile(
-      leading: Icon(
-        value == _sortBy ? Icons.radio_button_checked : Icons.radio_button_off,
-        color: Colors.green,
+  return ListTile(
+    contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 5),
+    leading: AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        color: value == _sortBy 
+          ? Colors.green.shade50 
+          : Colors.transparent,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: value == _sortBy 
+            ? Colors.green 
+            : Colors.grey.shade300,
+          width: 2,
+        ),
       ),
-      title: Text(title),
-      onTap: () {
-        _sortProducts(value);
-        Navigator.pop(context);
-      },
-    );
-  }
+      child: Center(
+        child: Icon(
+          value == _sortBy 
+            ? Icons.check_circle 
+            : Icons.circle_outlined,
+          color: value == _sortBy 
+            ? Colors.green 
+            : Colors.grey.shade300,
+          size: 20,
+        ),
+      ),
+    ),
+    title: Text(
+      title,
+      style: TextStyle(
+        color: Colors.black87,
+        fontWeight: value == _sortBy ? FontWeight.w700 : FontWeight.w500,
+      ),
+    ),
+    onTap: () {
+      _sortProducts(value);
+      Navigator.pop(context);
+    },
+  );
+}
 
   Widget _buildBody() {
     if (_isLoading) {
@@ -240,33 +317,54 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.favorite_border,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No favorites yet',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.elasticOut,
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.shade100.withOpacity(0.5),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                )
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Add items to your favorites',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
+            child: Icon(
+              Icons.favorite_border,
+              size: 64,
+              color: Colors.green.shade400,
             ),
           ),
           const SizedBox(height: 24),
+          Text(
+            'No Favorites Yet',
+            style: TextStyle(
+              fontSize: 22,
+              color: Colors.black87,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Explore and add items you love to your favorites',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 32),
           ElevatedButton(
             onPressed: () => Navigator.pushReplacement(
               context,
@@ -274,18 +372,28 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
+              elevation: 6,
+              shadowColor: Colors.green.withOpacity(0.4),
             ),
-            child: const Text('Discover Products',
-                style: TextStyle(fontSize: 16, color: Colors.white)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                Text('Discover Products', style: TextStyle(fontSize: 16)),
+                SizedBox(width: 10),
+                Icon(Icons.shopping_bag_outlined, size: 20 ,color: Colors.white,),
+              ],
+            ),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildGridView() {
     return GridView.builder(
