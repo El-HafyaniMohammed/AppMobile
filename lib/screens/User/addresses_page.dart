@@ -25,6 +25,7 @@ class _AddressesPageState extends State<AddressesPage> {
   final TextEditingController streetController = TextEditingController();
   final TextEditingController cityController = TextEditingController();
   final TextEditingController postalCodeController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
 
   @override
   void initState() {
@@ -111,6 +112,7 @@ class _AddressesPageState extends State<AddressesPage> {
       city: cityController.text,
       postalCode: postalCodeController.text,
       isDefault: existingAddress?.isDefault ?? false,
+      phoneNumber: phoneController.text,
     );
 
     try {
@@ -297,6 +299,11 @@ class _AddressesPageState extends State<AddressesPage> {
                   '${address.city}, ${address.postalCode}',
                   style: TextStyle(color: Colors.grey[700]),
                 ),
+                const SizedBox(height: 4),
+                Text(
+                  address.phoneNumber,
+                  style: TextStyle(color: Colors.grey[700]),
+                ),
               ],
             ),
           ),
@@ -314,12 +321,14 @@ class _AddressesPageState extends State<AddressesPage> {
       streetController.text = existingAddress.street;
       cityController.text = existingAddress.city;
       postalCodeController.text = existingAddress.postalCode;
+      phoneController.text = existingAddress.phoneNumber;
     } else {
       titleController.clear();
       nameController.clear();
       streetController.clear();
       cityController.clear();
       postalCodeController.clear();
+      phoneController.clear();
     }
 
     showModalBottomSheet(
@@ -378,6 +387,13 @@ class _AddressesPageState extends State<AddressesPage> {
                 label: 'Code postal',
                 icon: Icons.pin_drop,
                 keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: phoneController,
+                label: 'Numéro de téléphone',
+                icon: Icons.phone,
+                keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 20),
               ElevatedButton(

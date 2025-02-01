@@ -605,7 +605,7 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                     onPressed: () => Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CheckoutPage(cartItems: cartItems), // Passer les articles du panier
+                        builder: (context) => CheckoutPage(cartItems: cartItems, userId: userId ?? ''), // Passer les articles du panier
                       ),
                     ),
                     style: ElevatedButton.styleFrom(

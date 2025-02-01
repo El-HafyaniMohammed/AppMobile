@@ -152,134 +152,45 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 
   // Widget pour l'en-tête de la page
-  Widget _buildHeader() {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withOpacity(0.05),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
-    child: Row(
+   Widget _buildHeader() {
+    return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Left side - Brand name and location
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Text('Discover', style: config.AppStyles.headerText),
+        Stack(
           children: [
-            Row(
-              children: [
-                Text(
-                  'ShopEase',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.verified,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
-              ],
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => NotificationPage()),
+                );
+              },
             ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Icon(
-                  Icons.location_on,
-                  size: 16,
-                  color: Colors.grey[600],
+            Positioned(
+              right: 8,
+              top: 8,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  ' Morroco',
+                child: const Text(
+                  '2',
                   style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 12,
+                    color: Colors.white,
+                    fontSize: 10,
                   ),
                 ),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 16,
-                  color: Colors.grey[600],
-                ),
-              ],
-            ),
-          ],
-        ),
-        
-        // Right side - Action buttons
-        Row(
-          children: [
-            // Cart button
-            Stack(
-              children: [
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Text(
-                      '3',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            // Notification button
-            Stack(
-              children: [
-                IconButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => NotificationPage()),
-                    );
-                  },
-                  icon: const Icon(Icons.notifications_outlined),
-                  color: Colors.grey[700],
-                ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ],
         ),
       ],
-    ),
-  );
-}
+    );
+  }
 
   // Widget pour la barre de recherche
   Widget _buildSearchBar() {

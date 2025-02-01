@@ -6,6 +6,7 @@ class AddressUser {
   final String city; // Ville
   final String postalCode; // Code postal
   final bool isDefault; // Indique si c'est l'adresse par défaut
+  final String phoneNumber; // Numéro de téléphone
 
   /// Constructeur pour créer une instance d'AddressUser.
   AddressUser({
@@ -16,6 +17,7 @@ class AddressUser {
     required this.city,
     required this.postalCode,
     this.isDefault = false, // Par défaut, l'adresse n'est pas principale
+    required this.phoneNumber,
   });
 
   /// Factory constructor pour créer une instance d'AddressUser à partir d'une Map.
@@ -28,6 +30,7 @@ class AddressUser {
       city: data['city'] ?? '',
       postalCode: data['postalCode'] ?? '',
       isDefault: data['isDefault'] ?? false,
+      phoneNumber: data['phoneNumber'] ?? '',
     );
   }
 
@@ -41,6 +44,7 @@ class AddressUser {
       'city': city,
       'postalCode': postalCode,
       'isDefault': isDefault,
+      'phoneNumber': phoneNumber,
     };
   }
 
@@ -62,6 +66,7 @@ class AddressUser {
       city: city ?? this.city,
       postalCode: postalCode ?? this.postalCode,
       isDefault: isDefault ?? this.isDefault,
+      phoneNumber: phoneNumber,
     );
   }
 
@@ -74,6 +79,8 @@ class AddressUser {
         'street: $street, '
         'city: $city, '
         'postalCode: $postalCode, '
-        'isDefault: $isDefault)';
+        'isDefault: $isDefault, '
+        'phoneNumber: $phoneNumber'
+    ')';
   }
 }
