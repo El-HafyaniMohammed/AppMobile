@@ -28,6 +28,7 @@ class OrderTrackingPage extends StatelessWidget {
                 final status = statuses[index];
                 final isFirst = index == 0;
                 final isLast = index == statuses.length - 1;
+                final isCompleted = status.isCompleted;
 
                 return TimelineTile(
                   alignment: TimelineAlign.start,
@@ -35,14 +36,14 @@ class OrderTrackingPage extends StatelessWidget {
                   isLast: isLast,
                   indicatorStyle: IndicatorStyle(
                     width: 30,
-                    color: status.isCompleted ? Colors.green : Colors.grey,
+                    color: isCompleted ? Colors.green : Colors.grey,
                     iconStyle: IconStyle(
                       color: Colors.white,
                       iconData: status.icon,
                     ),
                   ),
                   beforeLineStyle: LineStyle(
-                    color: status.isCompleted ? Colors.green : Colors.grey,
+                    color: isCompleted ? Colors.green : Colors.grey,
                   ),
                   afterLineStyle: LineStyle(
                     color: index < statuses.length - 1 && statuses[index + 1].isCompleted 
@@ -88,9 +89,6 @@ class OrderTrackingPage extends StatelessWidget {
             ),
             ElevatedButton(
               onPressed: () {}, 
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-              ),
               child: const Text('Détails'),
             ),
           ],
@@ -104,14 +102,10 @@ class OrderTrackingPage extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: status.isCompleted 
-          ? Colors.green.shade50 
-          : Colors.grey.shade100,
+        color: status.isCompleted ? Colors.green.shade50 : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: status.isCompleted 
-            ? Colors.green.shade200 
-            : Colors.grey.shade300,
+          color: status.isCompleted ? Colors.green.shade200 : Colors.grey.shade300,
         ),
       ),
       child: Column(
@@ -122,18 +116,14 @@ class OrderTrackingPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: status.isCompleted 
-                ? Colors.green.shade800 
-                : Colors.grey.shade700,
+              color: status.isCompleted ? Colors.green.shade800 : Colors.grey.shade700,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             status.description,
             style: TextStyle(
-              color: status.isCompleted 
-                ? Colors.green.shade600 
-                : Colors.grey.shade600,
+              color: status.isCompleted ? Colors.green.shade600 : Colors.grey.shade600,
             ),
           ),
           if (status.timestamp != null)

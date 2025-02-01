@@ -1,11 +1,13 @@
-// ignore_for_file: unnecessary_null_comparison
+// ignore_for_file: unnecessary_null_comparison, unused_local_variable
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:project/screens/main_screen.dart';
 import 'package:project/services/firebase_service.dart';
+import 'package:project/models/user_model.dart'; // Add this import
 import '../../models/cart_item.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'OrderTrackingPage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CheckoutPage extends StatefulWidget {
   final String userId;
@@ -29,6 +31,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String? _selectedPaymentMethod;
   List<Map<String, dynamic>> savedAddresses = [];
   List<Map<String, dynamic>> savedPayments = [];
+  User? user = FirebaseAuth.instance.currentUser;
   
   // Controllers for new address form
   final _streetController = TextEditingController();
@@ -530,38 +533,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
-          builder: (context) => OrderTrackingPage(
-            orderId: orderRef.id,
-                      statuses: [
-                        OrderStatus(
-                          title: 'Order Confirmed',
-                          description: 'Your order has been received',
-                          isCompleted: true,
-                          icon: Icons.check_circle,
-                          timestamp: DateTime.now().toString(),
-                        ),
-                        OrderStatus(
-                          title: 'Processing',
-                          description: 'Your order is being processed',
-                          isCompleted: false,
-                          icon: Icons.inventory,
-                          timestamp: '',
-                        ),
-                        OrderStatus(
-                          title: 'On the Way',
-                          description: 'Your order is out for delivery',
-                          isCompleted: false,
-                          icon: Icons.local_shipping,
-                          timestamp: '',
-                        ),
-                        OrderStatus(
-                          title: 'Delivered',
-                          description: 'Your order has been delivered',
-                          isCompleted: false,
-                          icon: Icons.home,
-                          timestamp: '',
-                        ),
-                      ],
+          builder: (context) => MainScreen(
+            user: UserModel.fromFirebaseUser(user!),
           ),
         ),
         (route) => false, // Cela supprime toutes les routes précédentes

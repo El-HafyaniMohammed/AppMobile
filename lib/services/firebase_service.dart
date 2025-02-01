@@ -668,4 +668,18 @@ class FirebaseService {
       print('Error saving photo URL to Firestore: $e');
     }
   }
+
+  // Récupérer le nombres des commandes de l'utilisateur actuel
+  Future<int> getOrdersCount(String userId) async {
+    try {
+      final ordersSnapshot = await _firestore
+          .collection('orders')
+          .where('userId', isEqualTo: userId)
+          .get();
+      return ordersSnapshot.docs.length;
+    } catch (e) {
+      print('Erreur lors de la récupération des commandes: $e');
+      return 0;
+    }
+  }
 }

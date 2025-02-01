@@ -805,11 +805,18 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildStatItem(
-            icon: Icons.shopping_bag,
-            value: '12',
-            label: 'Commandes',
-            color: Colors.blue.shade700,
+          FutureBuilder<int>(
+            future: _firebaseService.getOrdersCount(userId),
+            builder: (context, snapshot) {
+              return _buildStatItem(
+                icon: Icons.shopping_bag,
+                value: snapshot.connectionState == ConnectionState.waiting
+                    ? '...'
+                    : snapshot.data?.toString() ?? '0',
+                label: 'commandes',
+                color: Colors.blue.shade700,
+              );
+            },
           ),
           _buildVerticalDivider(),
           _buildStatItem(
