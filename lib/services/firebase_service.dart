@@ -278,7 +278,7 @@ class FirebaseService {
           .doc(userId)
           .collection('favorites')
           .get();
-      return (favoritesSnapshot.docs.length);
+      return (favoritesSnapshot.docs.length - 1);
     } catch (e) {
       // ignore: avoid_print
       print('Erreur lors de la récupération des favoris: $e');
