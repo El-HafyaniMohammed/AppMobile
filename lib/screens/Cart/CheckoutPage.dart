@@ -2,12 +2,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:project/screens/main_screen.dart';
-import 'package:project/services/firebase_service.dart';
-import 'package:project/models/user_model.dart'; // Add this import
+import 'package:project/services/firebase_service.dart';// Add this import
 import '../../models/cart_item.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:project/screens/Cart/cart_page.dart';
 
 class CheckoutPage extends StatefulWidget {
   final String userId;
@@ -476,69 +475,66 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (!mounted) return;
       
       await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => WillPopScope(
-          // Empêcher le retour en arrière
-          onWillPop: () async => false,
-          child: AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Lottie.asset(
-                  'assets/animation/success.json',
-                  width: 150,
-                  height: 150,
-                  repeat: false,
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // Empêcher le retour en arrière
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.asset(
+                'assets/animation/success.json',
+                width: 150,
+                height: 150,
+                repeat: false,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Commande passée avec succès !',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Order Placed Successfully!',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Vous pouvez suivre votre commande dans "Mes commandes".',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your order will be delivered soon.',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Close'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+    // Attendre 2 secondes pour que l'animation soit visible
+    await Future.delayed(const Duration(seconds: 2));
 
-      // Attendre 2 secondes pour que l'animation soit visible
-      await Future.delayed(const Duration(seconds: 2));
-
-      // Rediriger vers la page des commandes
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => MainScreen(
-            user: UserModel.fromFirebaseUser(user!),
-          ),
-        ),
-        (route) => false, // Cela supprime toutes les routes précédentes
-      );
+    // Rediriger vers la page du panier
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => CartPage(),
+      ),
+      (route) => false, // Supprime toutes les routes précédentes
+    );
 
     } catch (e) {
       _showErrorDialog('Failed to place order: $e');

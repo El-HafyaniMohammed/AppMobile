@@ -14,7 +14,8 @@ class DiscoverPage extends StatefulWidget {
   State<DiscoverPage> createState() => _DiscoverPageState();
 }
 
-class _DiscoverPageState extends State<DiscoverPage> {
+class _DiscoverPageState extends State<DiscoverPage>
+    with TickerProviderStateMixin {
   String selectedCategory = 'All';
   final searchController = TextEditingController();
   bool isLoading = false;
@@ -22,10 +23,25 @@ class _DiscoverPageState extends State<DiscoverPage> {
   final FirebaseService _firebaseService = FirebaseService();
   List<Product> products = [];
   List<String> categories = [];
+  // Animation controllers
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  final List<GlobalKey> _productKeys = [];
 
   @override
   void initState() {
     super.initState();
+    // Initialize fade animation controller
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 1400),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    );
+    _fadeController.forward();
+
     searchController.addListener(() {
       setState(() {
         searchQuery = searchController.text;
@@ -37,6 +53,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
 
   @override
   void dispose() {
+    _fadeController.dispose();
     searchController.dispose();
     super.dispose();
   }
@@ -49,7 +66,10 @@ class _DiscoverPageState extends State<DiscoverPage> {
     try {
       final fetchedCategories = await _firebaseService.getCategories();
       setState(() {
-        categories = ['All', ...fetchedCategories]; // Ajoute 'All' aux catégories
+        categories = [
+          'All',
+          ...fetchedCategories
+        ]; // Ajoute 'All' aux catégories
       });
     } catch (e) {
       // ignore: avoid_print
@@ -70,9 +90,14 @@ class _DiscoverPageState extends State<DiscoverPage> {
       final fetchedProducts = await _firebaseService.getProducts();
       setState(() {
         products = fetchedProducts;
+        // Create animation keys for each product
+        _productKeys.clear();
+        for (var i = 0; i < products.length; i++) {
+          _productKeys.add(GlobalKey());
+        }
       });
+      _fadeController.forward(from: 0.0);
     } catch (e) {
-      // ignore: avoid_print
       print('Erreur lors du chargement des produits: $e');
     } finally {
       setState(() {
@@ -116,19 +141,28 @@ class _DiscoverPageState extends State<DiscoverPage> {
           child: CustomScrollView(
             slivers: [
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeader(),
-                      const SizedBox(height: 16),
-                      _buildSearchBar(),
-                      const SizedBox(height: 24),
-                      _buildSalesBanner(),
-                      const SizedBox(height: 16),
-                      _buildCategoriesSection(),
-                    ],
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -0.2),
+                      end: Offset.zero,
+                    ).animate(_fadeAnimation),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(),
+                          const SizedBox(height: 16),
+                          _buildSearchBar(),
+                          const SizedBox(height: 24),
+                          _buildSalesBanner(),
+                          const SizedBox(height: 16),
+                          _buildCategoriesSection(),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -152,7 +186,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 
   // Widget pour l'en-tête de la page
-   Widget _buildHeader() {
+  Widget _buildHeader() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -304,9 +338,9 @@ class _DiscoverPageState extends State<DiscoverPage> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 6),
-                
+
                 // Main text
                 ShaderMask(
                   shaderCallback: (Rect bounds) {
@@ -324,7 +358,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 4),
                 Text(
                   'on selected items',
@@ -334,21 +368,22 @@ class _DiscoverPageState extends State<DiscoverPage> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                
+
                 const Spacer(),
-                
+
                 // Review section
                 Row(
                   children: [
                     // Star rating
                     Row(
-                      children: List.generate(5, (index) => 
-                        Icon(
-                          Icons.star, 
-                          color: index < 4 ? Colors.amber : Colors.white24,
-                          size: 16,
-                        )
-                      ),
+                      children: List.generate(
+                          5,
+                          (index) => Icon(
+                                Icons.star,
+                                color:
+                                    index < 4 ? Colors.amber : Colors.white24,
+                                size: 16,
+                              )),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -361,9 +396,9 @@ class _DiscoverPageState extends State<DiscoverPage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // Action button
                 Row(
                   children: [
@@ -470,47 +505,63 @@ class _DiscoverPageState extends State<DiscoverPage> {
             itemCount: categories.length,
             separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
-              return AnimatedContainer(
+              return TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                decoration: BoxDecoration(
-                  color: categories[index] == selectedCategory 
-                    ? AppColors.primary 
-                    : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: categories[index] == selectedCategory 
-                      ? Colors.transparent 
-                      : AppColors.primary.withOpacity(0.3),
-                    width: 1.5,
-                  ),
+                tween: Tween(
+                  begin: 0.0,
+                  end: categories[index] == selectedCategory ? 1.0 : 0.0,
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () {
-                      setState(() {
-                        selectedCategory = categories[index];
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16, 
-                        vertical: 8
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: 1.0 + (0.05 * value),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Color.lerp(
+                          Colors.transparent,
+                          AppColors.primary,
+                          value,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Color.lerp(
+                            AppColors.primary.withOpacity(0.3),
+                            Colors.transparent,
+                            value,
+                          )!,
+                          width: 1.5,
+                        ),
                       ),
-                      child: Text(
-                        categories[index],
-                        style: TextStyle(
-                          color: categories[index] == selectedCategory 
-                            ? Colors.white 
-                            : AppColors.primary,
-                          fontWeight: FontWeight.w500,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: () {
+                            setState(() {
+                              selectedCategory = categories[index];
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Text(
+                              categories[index],
+                              style: TextStyle(
+                                color: Color.lerp(
+                                  AppColors.primary,
+                                  Colors.white,
+                                  value,
+                                ),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),
@@ -520,7 +571,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
   }
 
   // Widget pour la grille des produits
-   Widget _buildProductsGrid(List<Product> productsToDisplay) {
+  Widget _buildProductsGrid(List<Product> productsToDisplay) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -531,8 +582,33 @@ class _DiscoverPageState extends State<DiscoverPage> {
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           final product = productsToDisplay[index];
-          return GestureDetector(
-            onTap: () {
+          // Add staggered animation delay based on index
+          return AnimatedBuilder(
+            animation: _fadeAnimation,
+            builder: (context, child) {
+              final delay = (index * 100).clamp(0, 500).toDouble();
+              final slideAnimation = CurvedAnimation(
+                parent: _fadeAnimation,
+                curve: Interval(
+                  delay / 1000,
+                  (delay + 500) / 1000,
+                  curve: Curves.easeOutQuart,
+                ),
+              );
+
+              return Transform.translate(
+                offset: Offset(
+                  0,
+                  20 * (1 - slideAnimation.value),
+                ),
+                child: Opacity(
+                  opacity: slideAnimation.value,
+                  child: child,
+                ),
+              );
+            },
+            child: GestureDetector(
+               onTap: () {
               // Naviguer vers la page de description du produit
               Navigator.push(
                 context,
@@ -541,68 +617,90 @@ class _DiscoverPageState extends State<DiscoverPage> {
                 ),
               );
             },
-            child: ProductCard(
-              product: product,
-              onFavoriteChanged: (productId, isFavorite) async {
-                final userId = FirebaseAuth.instance.currentUser?.uid;
-                if (userId == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Veuillez vous connecter pour ajouter aux favoris'),
-                    ),
+              child: TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 200),
+                tween: Tween<double>(begin: 1, end: 1),
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: value,
+                    child: child,
                   );
-                  return;
-                }
+                },
+                child: ProductCard(
+                  product: product,
+                  onFavoriteChanged: (productId, isFavorite) async {
+                    final userId = FirebaseAuth.instance.currentUser?.uid;
+                    if (userId == null) {
+                      _showAnimatedSnackBar(
+                        context,
+                        'Veuillez vous connecter pour ajouter aux favoris',
+                        isError: true,
+                      );
+                      return;
+                    }
 
-                try {
-                  if (isFavorite) {
-                    await FirebaseService().addToFavorites(userId, productId);
-                  } else {
-                    await FirebaseService().removeFromFavorites(userId, productId);
-                  }
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur lors de la mise à jour des favoris: $e'),
-                    ),
-                  );
-                }
-              },
-              onAddToCart: (productId) async {
-  final userId = FirebaseAuth.instance.currentUser?.uid;
-  if (userId == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Veuillez vous connecter pour ajouter des articles au panier'),
-      ),
-    );
-    return;
-  }
+                    try {
+                      if (isFavorite) {
+                        await FirebaseService()
+                            .addToFavorites(userId, productId);
+                        _showAnimatedSnackBar(
+                          context,
+                          'Produit ajouté aux favoris',
+                          isError: false,
+                        );
+                      } else {
+                        await FirebaseService()
+                            .removeFromFavorites(userId, productId);
+                        _showAnimatedSnackBar(
+                          context,
+                          'Produit retiré des favoris',
+                          isError: false,
+                        );
+                      }
+                    } catch (e) {
+                      _showAnimatedSnackBar(
+                        context,
+                        'Erreur lors de la mise à jour des favoris: $e',
+                        isError: true,
+                      );
+                    }
+                  },
+                  onAddToCart: (productId) async {
+                    final userId = FirebaseAuth.instance.currentUser?.uid;
+                    if (userId == null) {
+                      _showAnimatedSnackBar(
+                        context,
+                        'Veuillez vous connecter pour ajouter des articles au panier',
+                        isError: true,
+                      );
+                      return;
+                    }
 
-  final product = products.firstWhere((p) => p.id == productId);
+                    final product =
+                        products.firstWhere((p) => p.id == productId);
 
-  // Vérifier si le produit a des tailles ou des couleurs
-  if (product.sizes.isNotEmpty || product.colors.isNotEmpty) {
-    // Afficher une boîte de dialogue pour sélectionner la taille ou la couleur
-    await _showSizeColorDialog(context, product, userId);
-  } else {
-    // Ajouter directement au panier si aucune taille ou couleur n'est nécessaire
-    try {
-      await FirebaseService().addToCart(userId, productId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${product.name} ajouté au panier'),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur lors de l\'ajout au panier: $e'),
-        ),
-      );
-    }
-  }
-},
+                    if (product.sizes.isNotEmpty || product.colors.isNotEmpty) {
+                      await _showEnhancedSizeColorDialog(
+                          context, product, userId);
+                    } else {
+                      try {
+                        await FirebaseService().addToCart(userId, productId);
+                        _showAnimatedSnackBar(
+                          context,
+                          '${product.name} ajouté au panier',
+                          isError: false,
+                        );
+                      } catch (e) {
+                        _showAnimatedSnackBar(
+                          context,
+                          'Erreur lors de l\'ajout au panier: $e',
+                          isError: true,
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
             ),
           );
         },
@@ -610,93 +708,276 @@ class _DiscoverPageState extends State<DiscoverPage> {
       ),
     );
   }
-  Future<void> _showSizeColorDialog(BuildContext context, Product product, String userId) async {
+
+  void _showAnimatedSnackBar(BuildContext context, String message,
+      {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 300),
+          tween: Tween<double>(begin: 0, end: 1),
+          builder: (context, value, child) {
+            return Opacity(
+              opacity: value,
+              child: Transform.translate(
+                offset: Offset(0, 20 * (1 - value)),
+                child: Row(
+                  children: [
+                    Icon(
+                      isError
+                          ? Icons.error_outline
+                          : Icons.check_circle_outline,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(message)),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        backgroundColor: isError ? Colors.red.shade800 : Colors.green.shade800,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _showEnhancedSizeColorDialog(
+      BuildContext context, Product product, String userId) async {
     String? selectedSize;
     String? selectedColor;
 
-    await showDialog(
+    await showGeneralDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Sélectionnez les options pour ${product.name}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (product.sizes.isNotEmpty)
-                DropdownButtonFormField<String>(
-                  value: selectedSize,
-                  hint: const Text('Sélectionnez une taille'),
-                  items: product.sizes.map((size) {
-                    return DropdownMenuItem(
-                      value: size,
-                      child: Text(size),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    selectedSize = value;
-                  },
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutQuart,
+              child: AlertDialog(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                title: Column(
+                  children: [
+                    Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sélectionnez vos options',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
                 ),
-              if (product.colors.isNotEmpty)
-                DropdownButtonFormField<String>(
-                  value: selectedColor,
-                  hint: const Text('Sélectionnez une couleur'),
-                  items: product.colors.map((color) {
-                    return DropdownMenuItem(
-                      value: color,
-                      child: Text(color),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    selectedColor = value;
-                  },
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (product.sizes.isNotEmpty) ...[
+                        const Text(
+                          'Taille',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: product.sizes.map((size) {
+                            final isSelected = selectedSize == size;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selectedSize = size;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Theme.of(context).primaryColor
+                                        : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    size,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      if (product.colors.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Couleur',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: product.colors.map((color) {
+                            final isSelected = selectedColor == color;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    selectedColor = color;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? Theme.of(context).primaryColor
+                                        : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    color,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if ((product.sizes.isNotEmpty && selectedSize == null) ||
-                    (product.colors.isNotEmpty && selectedColor == null)) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Veuillez sélectionner une taille et/ou une couleur'),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Annuler',
+                      style: TextStyle(color: Colors.grey.shade600),
                     ),
-                  );
-                  return;
-                }
-
-                try {
-                  await FirebaseService().addToCart(
-                    userId,
-                    product.id,
-                    size: selectedSize,
-                    color: selectedColor,
-                  );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.name} ajouté au panier'),
+                  ),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    child: ElevatedButton(
+                      onPressed:
+                          ((product.sizes.isNotEmpty && selectedSize == null) ||
+                                  (product.colors.isNotEmpty &&
+                                      selectedColor == null))
+                              ? null
+                              : () async {
+                                  try {
+                                    await FirebaseService().addToCart(
+                                      userId,
+                                      product.id,
+                                      size: selectedSize,
+                                      color: selectedColor,
+                                    );
+                                    Navigator.pop(context);
+                                    _showAnimatedSnackBar(
+                                      context,
+                                      '${product.name} ajouté au panier',
+                                      isError: false,
+                                    );
+                                  } catch (e) {
+                                    _showAnimatedSnackBar(
+                                      context,
+                                      'Erreur lors de l\'ajout au panier: $e',
+                                      isError: true,
+                                    );
+                                  }
+                                },
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text('Ajouter au panier'),
                     ),
-                  );
-                  Navigator.pop(context);
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Erreur lors de l\'ajout au panier: $e'),
-                    ),
-                  );
-                }
-              },
-              child: const Text('Ajouter au panier'),
-            ),
-          ],
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.3),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutQuart,
+            ),
+          ),
+          child: FadeTransition(
+            opacity: animation,
+            child: child,
+          ),
+        );
+      },
+      transitionDuration: const Duration(milliseconds: 400),
+      barrierDismissible: true,
+      barrierLabel: '',
+      barrierColor: Colors.black54,
     );
   }
 }
