@@ -1,4 +1,4 @@
-// ignore_for_file: unused_field
+// ignore_for_file: unused_field, non_constant_identifier_names
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -184,7 +184,8 @@ class _LoginContentState extends State<LoginContent> {
       }
 
       // Obtenir les informations d'authentification Google
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       // Créer les credentials Firebase
       final credential = GoogleAuthProvider.credential(
@@ -193,7 +194,8 @@ class _LoginContentState extends State<LoginContent> {
       );
 
       // Connexion avec Firebase
-      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
 
       if (userCredential.user != null) {
         // Créer un UserModel pour l'utilisateur
@@ -345,6 +347,22 @@ class _LoginContentState extends State<LoginContent> {
             .set({
           'createdAt':
               DateTime.now(), // Optionnel : date de création des favoris
+        });
+      }
+      //cree une collection pour les produits a vendre
+      final Product_a_vendre = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('ProductAVendre')
+          .get();
+      if (Product_a_vendre.docs.isEmpty) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('ProductAVendre')
+            .doc('initial')
+            .set({
+          'createdAt': DateTime.now(),
         });
       }
       // Récupérer les informations de l'utilisateur depuis Firestore
@@ -712,6 +730,16 @@ class _SignupContentState extends State<SignupContent> {
             .collection('users')
             .doc(userId)
             .collection('payementCard')
+            .doc('initial')
+            .set({
+          'createdAt':
+              DateTime.now(), // Optionnel : date de création des favoris
+        });
+        // creer une collection pour les produits a vendre 
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('ProductAVendre')
             .doc('initial')
             .set({
           'createdAt':

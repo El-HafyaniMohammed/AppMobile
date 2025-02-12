@@ -122,6 +122,7 @@ class Product {
   double get displayPrice => isOnSale ? (salePrice ?? price) : price;
 
   Product copyWith({
+    required String id,
     String? selectedSize,
     String? selectedColor,
   }) {

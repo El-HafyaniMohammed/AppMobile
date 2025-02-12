@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import '../Notification/notification_page.dart';
 import '../../models/product.dart';
@@ -6,6 +8,9 @@ import '../../widgets/product_card.dart';
 import '../../services/firebase_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'ProductDetailPage.dart';
+import '../dashboard/AddProductPage.dart';
+import '../dashboard/MyProductsPage.dart';
+import '../dashboard/SalesAnalyticsPage.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -27,10 +32,32 @@ class _DiscoverPageState extends State<DiscoverPage>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
   final List<GlobalKey> _productKeys = [];
-
+  bool _isMenuOpen = false;
+  bool _isSearchVisible = false;
+  late AnimationController _menuAnimationController;
+  late AnimationController _searchAnimationController;
+  late Animation<double> _searchWidthAnimation;
   @override
   void initState() {
     super.initState();
+    // Initialisation des animations pour le champ de recherche
+    _searchAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _searchWidthAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
+      CurvedAnimation(
+        parent: _searchAnimationController,
+        curve: Curves.easeOut,
+      ),
+    );
+
+    // Initialisation des animations pour le menu utilisateur
+    _menuAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
     // Initialize fade animation controller
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1400),
@@ -133,21 +160,14 @@ class _DiscoverPageState extends State<DiscoverPage>
     final filteredProducts = _filterProducts();
 
     return Scaffold(
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await _loadProducts();
-          },
-          child: CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, -0.2),
-                      end: Offset.zero,
-                    ).animate(_fadeAnimation),
+      body: Stack(
+        children: [
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: () async => await _loadProducts(),
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -155,29 +175,246 @@ class _DiscoverPageState extends State<DiscoverPage>
                         children: [
                           _buildHeader(),
                           const SizedBox(height: 16),
-                          _buildSearchBar(),
                           const SizedBox(height: 24),
                           _buildSalesBanner(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 24),
                           _buildCategoriesSection(),
                         ],
                       ),
                     ),
                   ),
+                  isLoading
+                      ? const SliverFillRemaining(
+                          child: Center(child: CircularProgressIndicator()))
+                      : filteredProducts.isEmpty
+                          ? const SliverFillRemaining(
+                              child:
+                                  Center(child: Text('Aucun produit trouvé')))
+                          : SliverPadding(
+                              padding: const EdgeInsets.all(16),
+                              sliver: _buildProductsGrid(filteredProducts),
+                            ),
+                ],
+              ),
+            ),
+          ),
+          if (_isMenuOpen) _buildUserMenu(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserMenu() {
+    return Positioned(
+      top: 120,
+      right: 20,
+      child: ScaleTransition(
+        scale: CurvedAnimation(
+          parent: _menuAnimationController,
+          curve: Curves.easeOutBack,
+        ),
+        child: FadeTransition(
+          opacity: _menuAnimationController,
+          child: Container(
+            width: 280,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // En-tête du menu vendeur
+                _buildSellerMenuHeader(),
+
+                const Divider(height: 1),
+
+                // Options de gestion des produits
+                _buildSellerMenuItem(
+                  icon: Icons.add_box_outlined,
+                  label: 'Add New Product',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => AddProductPage()),
+                  ),
+                ),
+                _buildSellerMenuItem(
+                  icon: Icons.inventory_2_outlined,
+                  label: 'My Products',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => MyProductsPage()),
+                  ),
+                ),
+                _buildSellerMenuItem(
+                  icon: Icons.analytics_outlined,
+                  label: 'Sales Analytics',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => SalesAnalyticsPage()),
+                  ),
+                ),
+                _buildSellerMenuItem(
+                  icon: Icons.shopping_bag_outlined,
+                  label: 'Orders Management',
+                  badge: '3',
+                  onTap: () =>
+                      Navigator.pushNamed(context, '/orders-management'),
+                ),
+
+                const Divider(height: 1),
+
+                // Paramètres boutique
+                _buildSellerMenuItem(
+                  icon: Icons.storefront_outlined,
+                  label: 'Shop Settings',
+                  onTap: () => Navigator.pushNamed(context, '/shop-settings'),
+                ),
+                _buildSellerMenuItem(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: 'Payment Settings',
+                  onTap: () =>
+                      Navigator.pushNamed(context, '/payment-settings'),
+                ),
+
+                const Divider(height: 1),
+
+                // Switch to buyer mode
+                _buildSwitchToBuyerMode(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSellerMenuHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.1),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.store, color: Colors.green[700], size: 24),
+          const SizedBox(width: 12),
+          const Text(
+            'Seller Dashboard',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSellerMenuItem({
+    required IconData icon,
+    required String label,
+    String? badge,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 20, color: Colors.grey[700]),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              isLoading
-                  ? const SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : filteredProducts.isEmpty
-                      ? const SliverFillRemaining(
-                          child: Center(child: Text('Aucun produit trouvé')),
-                        )
-                      : SliverPadding(
-                          padding: const EdgeInsets.all(16),
-                          sliver: _buildProductsGrid(filteredProducts),
-                        ),
+              if (badge != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    badge,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: Colors.grey[400],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchToBuyerMode() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          // Logique pour basculer en mode acheteur
+          _toggleMenu();
+          // Ajouter ici la navigation ou le changement d'état
+        },
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.shopping_cart_outlined,
+                size: 20,
+                color: Colors.grey[700],
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Switch to Buyer Mode',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
         ),
@@ -187,72 +424,279 @@ class _DiscoverPageState extends State<DiscoverPage>
 
   // Widget pour l'en-tête de la page
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text('Discover', style: config.AppStyles.headerText),
-        Stack(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
           children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => NotificationPage()),
-                );
-              },
-            ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Left side - Title and subtitle
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Discover',
+                          style: config.AppStyles.headerText.copyWith(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'NEW',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Explore our latest collection',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text(
-                  '2',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                  ),
+
+                // Right side - Actions
+                Row(
+                  children: [
+                    _buildSearchButton(),
+                    const SizedBox(width: 12),
+                    _buildEnhancedNotificationButton(),
+                    const SizedBox(width: 12),
+                    _buildEnhancedProfileButton(),
+                  ],
                 ),
-              ),
+              ],
             ),
+            if (_isSearchVisible) ...[
+              const SizedBox(height: 16),
+              _buildExpandedSearchBar(),
+            ],
           ],
         ),
-      ],
+      ),
     );
   }
 
-  // Widget pour la barre de recherche
-  Widget _buildSearchBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+  Widget _buildSearchButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _isSearchVisible = !_isSearchVisible;
+            if (_isSearchVisible) {
+              _searchAnimationController.forward();
+            } else {
+              _searchAnimationController.reverse();
+            }
+          });
+        },
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        controller: searchController,
-        decoration: InputDecoration(
-          icon: const Icon(Icons.search),
-          hintText: 'Search products...',
-          border: InputBorder.none,
-          suffixIcon: searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () {
-                    setState(() {
-                      searchController.clear();
-                    });
-                  },
-                )
-              : null,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            _isSearchVisible ? Icons.close : Icons.search,
+            color: Colors.grey[700],
+            size: 20,
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildEnhancedNotificationButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NotificationPage()),
+        ),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Icon(
+                Icons.notifications_none_rounded,
+                color: Colors.grey[700],
+                size: 20,
+              ),
+              Positioned(
+                right: -2,
+                top: -2,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2,
+                    ),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 8,
+                    minHeight: 8,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEnhancedProfileButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _toggleMenu,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Stack(
+            children: [
+              AnimatedBuilder(
+                animation: _menuAnimationController,
+                builder: (context, child) {
+                  return Transform.rotate(
+                    angle: _menuAnimationController.value * 0.5,
+                    child: Icon(
+                      _isMenuOpen ? Icons.close : Icons.menu,
+                      color: Colors.grey[700],
+                      size: 20,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExpandedSearchBar() {
+    return AnimatedBuilder(
+      animation: _searchAnimationController,
+      builder: (context, child) {
+        return SizeTransition(
+          sizeFactor: _searchAnimationController,
+          child: FadeTransition(
+            opacity: _searchAnimationController,
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey[300]!,
+                  width: 1,
+                ),
+              ),
+              child: TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search products...',
+                  hintStyle: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 14,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.grey[600],
+                    size: 20,
+                  ),
+                  suffixIcon: searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.clear,
+                            color: Colors.grey[600],
+                            size: 20,
+                          ),
+                          onPressed: () {
+                            searchController.clear();
+                            setState(() {
+                              searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                  });
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _toggleMenu() {
+    setState(() {
+      _isMenuOpen = !_isMenuOpen;
+      _isMenuOpen
+          ? _menuAnimationController.forward()
+          : _menuAnimationController.reverse();
+    });
   }
 
   // Widget pour la bannière de vente
@@ -608,15 +1052,15 @@ class _DiscoverPageState extends State<DiscoverPage>
               );
             },
             child: GestureDetector(
-               onTap: () {
-              // Naviguer vers la page de description du produit
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProductDetailPage(product: product),
-                ),
-              );
-            },
+              onTap: () {
+                // Naviguer vers la page de description du produit
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProductDetailPage(product: product),
+                  ),
+                );
+              },
               child: TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 200),
                 tween: Tween<double>(begin: 1, end: 1),
@@ -991,7 +1435,7 @@ class GridPatternPainter extends CustomPainter {
       ..strokeWidth = 1;
 
     const spacing = 15.0;
-    
+
     for (double i = 0; i < size.width; i += spacing) {
       canvas.drawLine(
         Offset(i, 0),
@@ -999,7 +1443,7 @@ class GridPatternPainter extends CustomPainter {
         paint,
       );
     }
-    
+
     for (double i = 0; i < size.height; i += spacing) {
       canvas.drawLine(
         Offset(0, i),

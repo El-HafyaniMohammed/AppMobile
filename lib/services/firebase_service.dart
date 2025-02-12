@@ -11,7 +11,7 @@ class FirebaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
-
+  String? get currentUserId => _auth.currentUser?.uid;
   // Method to get user data from Firestore
   Future<Map<String, dynamic>> getUserData(String userId) async {
     try {
@@ -681,5 +681,80 @@ class FirebaseService {
       print('Erreur lors de la récupération des commandes: $e');
       return 0;
     }
+  }
+
+  Future<void> addProduct(Product product) async {
+    if (currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+    
+    final productRef = _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('productsAvendre')
+        .doc();
+    
+    // Set the generated ID to the product
+    final productWithId = product.copyWith(id: productRef.id);
+    
+    await productRef.set(productWithId.toMap());
+  }
+
+  // Get all products for current user
+  Future<List<Product>> getUserProducts() async {
+    if (currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+    
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('productsAvendre')
+        .get();
+    
+    return snapshot.docs
+        .map((doc) => Product.fromMap(doc.data()))
+        .toList();
+  }
+
+  // Delete a product
+  Future<void> deleteProduct(String productId) async {
+    if (currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+    
+    await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('productsAvendre')
+        .doc(productId)
+        .delete();
+  }
+
+
+  // Get products from a specific seller
+  Future<List<Product>> getSellerProducts(String sellerId) async {
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(sellerId)
+        .collection('productsAvendre')
+        .get();
+    
+    return snapshot.docs
+        .map((doc) => Product.fromMap(doc.data()))
+        .toList();
+  }
+
+  // Get seller information
+  Future<Map<String, dynamic>?> getSellerInfo(String sellerId) async {
+    final docSnapshot = await _firestore
+        .collection('users')
+        .doc(sellerId)
+        .get();
+    
+    if (docSnapshot.exists) {
+      return docSnapshot.data();
+    }
+    return null;
   }
 }
