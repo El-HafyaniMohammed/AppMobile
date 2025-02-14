@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/product.dart';
 import '../../services/firebase_service.dart';
+//inmp
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
