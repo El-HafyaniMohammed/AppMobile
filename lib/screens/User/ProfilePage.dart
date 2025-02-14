@@ -8,11 +8,15 @@ import 'package:image_picker/image_picker.dart';
 import 'phone_verification_dialog.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:file_picker/file_picker.dart'; // For picking files
-import 'package:permission_handler/permission_handler.dart'
-    as permission_handler; // For handling permissions
-import 'package:device_info_plus/device_info_plus.dart'; // For device info
+import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart' as permission_handler;
+import 'package:device_info_plus/device_info_plus.dart';
 import '../../services/firebase_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+
+File? _selectedImage;
 
 class ProfilePage extends StatefulWidget {
   final UserModel user;
@@ -30,10 +34,14 @@ class _ProfilePageState extends State<ProfilePage> {
   late final UserModel user = widget.user;
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
-  File? _selectedImage; // Pour stocker l'image sélectionnée
+  final String cloudName = 'dgdhrhnar'; // Your Cloudinary Cloud Name
+  final String uploadPreset = 'image_product'; // Your Upload Preset
+  File? _imageFile;
+  bool _isUploading = false;
   bool _isEditing = false;
   final FirebaseService _firebaseService = FirebaseService();
   String userId = FirebaseAuth.instance.currentUser!.uid;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +70,68 @@ class _ProfilePageState extends State<ProfilePage> {
         _nameController.text = _formatName(widget.user.email.split('@').first);
         _phoneController.text = currentUser.phoneNumber ?? '';
       }
+    }
+  }
+
+  Future<String?> _uploadToCloudinary(dynamic fileData) async {
+    try {
+      setState(() {
+        _isUploading = true;
+      });
+
+      final uri = Uri.parse(
+          'https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+      
+      var request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = uploadPreset;
+
+      if (kIsWeb) {
+        // Handle web platform
+        if (fileData is PlatformFile) {
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'file',
+              fileData.bytes!,
+              filename: fileData.name,
+            ),
+          );
+        }
+      } else {
+        // Handle mobile platform
+        if (fileData is File) {
+          request.files.add(
+            await http.MultipartFile.fromPath('file', fileData.path),
+          );
+        }
+      }
+
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+      final Map<String, dynamic> data = jsonDecode(responseData);
+
+      setState(() {
+        _isUploading = false;
+      });
+
+      if (response.statusCode == 200) {
+        final String imageUrl = data['secure_url'];
+        print('Upload successful: $imageUrl');
+        return imageUrl;
+      } else {
+        throw Exception('Upload failed: ${data['error']['message']}');
+      }
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+      print('Error uploading to Cloudinary: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Upload failed, please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return null;
     }
   }
 
@@ -157,7 +227,6 @@ class _ProfilePageState extends State<ProfilePage> {
             _isEditing = false;
           });
 
-          // ignore: use_build_context_synchronously
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Profil mis à jour avec succès'),
@@ -166,7 +235,6 @@ class _ProfilePageState extends State<ProfilePage> {
           );
         }
       } catch (e) {
-        // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur lors de la mise à jour : ${e.toString()}'),
@@ -197,8 +265,8 @@ class _ProfilePageState extends State<ProfilePage> {
         ];
 
         // Request permissions
-        Map<permission_handler.Permission, permission_handler.PermissionStatus> statuses =
-            await permissions.request();
+        Map<permission_handler.Permission, permission_handler.PermissionStatus>
+            statuses = await permissions.request();
 
         // Check if all permissions are granted
         if (statuses.values.every((status) => status.isGranted)) {
@@ -219,7 +287,6 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       }
     } catch (e) {
-      // Handle unexpected errors
       print('Error in image picking: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -231,117 +298,83 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _showPermissionDialog() async {
-  await showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Permissions requises'),
-        content: const Text(
-          'Pour utiliser cette fonctionnalité, vous devez autoriser l\'accès à la caméra ou au stockage dans les paramètres de l\'application.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Annuler'),
-            onPressed: () => Navigator.pop(context),
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Permissions requises'),
+          content: const Text(
+            'Pour utiliser cette fonctionnalité, vous devez autoriser l\'accès à la caméra ou au stockage dans les paramètres de l\'application.',
           ),
-          TextButton(
-            child: const Text('Ouvrir les paramètres'),
-            onPressed: () async {
-              Navigator.pop(context);
-              await permission_handler.openAppSettings(); // Open app settings
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
-  Future<void> _showImageSourceDialog() async {
-  await showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Choisir une source'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            ListTile(
-              leading: const Icon(Icons.camera),
-              title: const Text('Caméra'),
-              onTap: () async {
-                Navigator.pop(context); // Close dialog
-                final pickedFile = await ImagePicker().pickImage(
-                  source: ImageSource.camera,
-                  imageQuality: 85,
-                );
-                _processPickedFile(pickedFile);
-              },
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Annuler'),
+              onPressed: () => Navigator.pop(context),
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Galerie'),
-              onTap: () async {
-                Navigator.pop(context); // Close dialog
-                final pickedFile = await ImagePicker().pickImage(
-                  source: ImageSource.gallery,
-                  imageQuality: 85,
-                );
-                _processPickedFile(pickedFile);
+            TextButton(
+              child: const Text('Ouvrir les paramètres'),
+              onPressed: () async {
+                Navigator.pop(context);
+                await permission_handler.openAppSettings();
               },
             ),
           ],
-        ),
-      );
-    },
-  );
-}
+        );
+      },
+    );
+  }
+
+  Future<void> _showImageSourceDialog() async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Choisir une source'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.camera),
+                title: const Text('Caméra'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final pickedFile = await ImagePicker().pickImage(
+                    source: ImageSource.camera,
+                    imageQuality: 85,
+                  );
+                  _processPickedFile(pickedFile);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galerie'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final pickedFile = await ImagePicker().pickImage(
+                    source: ImageSource.gallery,
+                    imageQuality: 85,
+                  );
+                  _processPickedFile(pickedFile);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   void _processPickedFile(XFile? pickedFile) async {
     if (pickedFile != null) {
       print('Image picked: ${pickedFile.path}');
       
-      // Perform the upload (e.g., using `uploadImage` method)
-      String? downloadURL = await user.uploadImage(File(pickedFile.path));
+      _imageFile = File(pickedFile.path);
+      
+      // Upload to Cloudinary
+      String? downloadURL = await _uploadToCloudinary(_imageFile);
 
       if (downloadURL != null) {
         // Update the user's photoURL in Firestore
-        await savePhotoURLToFirestore(userId, downloadURL);
-
-        // Optionally update UI
-        setState(() {
-          user.photoURL = downloadURL;
-        });
-
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Image mise à jour avec succès.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        // Handle upload failure
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Échec du téléversement de l\'image.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } else {
-      print('Aucune image sélectionnée.');
-    }
-  }
-
-
-  void _processWebFile(PlatformFile platformFile) async {
-    print('Image selected: ${platformFile.name}');
-
-    // Upload the file (use the Uint8List for web-based uploads)
-    String? downloadURL = await user.uploadImage(platformFile);
-
-    if (downloadURL != null) {
         await savePhotoURLToFirestore(userId, downloadURL);
 
         // Update UI
@@ -356,28 +389,41 @@ class _ProfilePageState extends State<ProfilePage> {
             backgroundColor: Colors.green,
           ),
         );
-      } else {
-        // Handle upload failure
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Échec du téléversement de l\'image.'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
+    } else {
+      print('Aucune image sélectionnée.');
+    }
+  }
+
+  void _processWebFile(PlatformFile platformFile) async {
+    print('Image selected: ${platformFile.name}');
+
+    // Upload to Cloudinary
+    String? downloadURL = await _uploadToCloudinary(platformFile);
+
+    if (downloadURL != null) {
+      await savePhotoURLToFirestore(userId, downloadURL);
+
+      setState(() {
+        user.photoURL = downloadURL;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Image mise à jour avec succès.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   Future<void> savePhotoURLToFirestore(String uid, String photoURL) async {
     try {
-      // Reference to the user's document
       final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
-
-      // Save the `photoURL` field as a string
       await userDoc.set(
         {'photoURL': photoURL},
-        SetOptions(merge: true), // Merge to avoid overwriting other fields
+        SetOptions(merge: true),
       );
-
       print('Photo URL successfully saved to Firestore.');
     } catch (e) {
       print('Error saving photo URL to Firestore: $e');
