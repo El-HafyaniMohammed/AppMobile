@@ -4,11 +4,9 @@ import '../../services/firebase_service.dart';
 import 'dart:ui';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:path/path.dart' as path;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -23,7 +21,6 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _brandController = TextEditingController();
-  final _imageUrlController = TextEditingController();
   
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -34,11 +31,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
   bool _isLoading = false;
   List<String> _categories = [];
   final FirebaseService _firebaseService = FirebaseService();
-
-  // Nouvelles variables pour l'upload d'image
-  File? _selectedImage;
   final ImagePicker _picker = ImagePicker();
-  bool _isUploading = false;
   File? _imageFile;
 
   @override
@@ -59,62 +52,44 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
     _animationController.forward();
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    _priceController.dispose();
-    _brandController.dispose();
-    _imageUrlController.dispose();
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  // Nouvelle méthode pour sélectionner une image
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        setState(() {
-          _selectedImage = File(image.path);
-        });
+        setState(() => _imageFile = File(image.path));
       }
     } catch (e) {
       _showErrorSnackBar('Error picking image: $e');
     }
   }
 
-  // Nouvelle méthode pour uploader l'image
   Future<String?> _uploadImage() async {
-  if (_imageFile == null) return null;
+    if (_imageFile == null) return null;
 
-  try {
-    final String cloudName = 'dgdhrhnar'; // Remplace par ton Cloudinary Cloud Name
-    final String uploadPreset = 'image_product'; // Remplace par ton Upload Preset
+    try {
+      const String cloudName = 'dgdhrhnar';
+      const String uploadPreset = 'image_product';
 
-    final Uri uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+      final Uri uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
 
-    final request = http.MultipartRequest('POST', uri)
-      ..fields['upload_preset'] = uploadPreset
-      ..files.add(await http.MultipartFile.fromPath('file', _imageFile!.path));
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = uploadPreset
+        ..files.add(await http.MultipartFile.fromPath('file', _imageFile!.path));
 
-    final response = await request.send();
-    final responseData = await response.stream.bytesToString();
-    final Map<String, dynamic> data = jsonDecode(responseData);
+      final response = await request.send();
+      final responseData = await response.stream.bytesToString();
+      final Map<String, dynamic> data = jsonDecode(responseData);
 
-    if (response.statusCode == 200) {
-      final String imageUrl = data['secure_url'];
-      print('Upload réussi: $imageUrl');
-      return imageUrl;
-    } else {
-      throw Exception('Échec de l\'upload: ${data['error']['message']}');
+      if (response.statusCode == 200) {
+        return data['secure_url'];
+      } else {
+        throw Exception('Upload failed: ${data['error']['message']}');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Upload error: $e');
+      return null;
     }
-  } catch (e) {
-    print('Erreur d\'upload vers Cloudinary: $e');
-    _showErrorSnackBar('Échec de l\'upload, réessayez.');
-    return null;
   }
-}
 
   Widget _buildGlassContainer({required Widget child}) {
     return ClipRRect(
@@ -171,7 +146,6 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
     );
   }
 
-  // Modified _buildImagePreview pour inclure l'upload d'image
   Widget _buildImagePreview() {
     return _buildGlassContainer(
       child: Padding(
@@ -199,11 +173,11 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                       width: 2,
                     ),
                   ),
-                  child: _selectedImage != null
+                  child: _imageFile != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.file(
-                            _selectedImage!,
+                            _imageFile!,
                             fit: BoxFit.cover,
                           ),
                         )
@@ -228,19 +202,6 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                 ),
               ),
             ),
-            if (_isUploading)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Center(
-                  child: Column(
-                    children: const [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 8),
-                      Text('Uploading image...'),
-                    ],
-                  ),
-                ),
-              ),
           ],
         ),
       ),
@@ -261,6 +222,8 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
               ),
             ),
             const SizedBox(height: 16),
+            _buildCategorySelector(),
+            const SizedBox(height: 16),
             Text(
               'Available Sizes',
               style: Theme.of(context).textTheme.titleMedium,
@@ -271,24 +234,15 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
               runSpacing: 8,
               children: ['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) {
                 final isSelected = _selectedSizes.contains(size);
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  child: FilterChip(
-                    label: Text(size),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        if (selected) {
-                          _selectedSizes.add(size);
-                        } else {
-                          _selectedSizes.remove(size);
-                        }
-                      });
-                    },
-                    selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
-                    checkmarkColor: Theme.of(context).primaryColor,
-                    backgroundColor: Colors.white.withOpacity(0.3),
-                  ),
+                return FilterChip(
+                  label: Text(size),
+                  selected: isSelected,
+                  onSelected: (selected) => setState(() {
+                    selected ? _selectedSizes.add(size) : _selectedSizes.remove(size);
+                  }),
+                  selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                  checkmarkColor: Theme.of(context).primaryColor,
+                  backgroundColor: Colors.white.withOpacity(0.3),
                 );
               }).toList(),
             ),
@@ -309,47 +263,39 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
     );
   }
 
-  List<Widget> _buildColorChips() {
-    final colors = {
-      'Black': Colors.black,
-      'White': Colors.white,
-      'Red': Colors.red,
-      'Blue': Colors.blue,
-      'Green': Colors.green,
-      'Yellow': Colors.yellow,
-    };
-
-    return colors.entries.map((entry) {
-      final isSelected = _selectedColors.contains(entry.key);
-      return AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        child: FilterChip(
-          label: Text(
-            entry.key,
-            style: TextStyle(
-              color: entry.key == 'White' ? Colors.black : null,
-            ),
+  Widget _buildCategorySelector() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Category',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
           ),
-          selected: isSelected,
-          onSelected: (selected) {
-            setState(() {
-              if (selected) {
-                _selectedColors.add(entry.key);
-              } else {
-                _selectedColors.remove(entry.key);
-              }
-            });
-          },
-          selectedColor: entry.value.withOpacity(0.2),
-          checkmarkColor: entry.key == 'White' ? Colors.black : Colors.white,
-          backgroundColor: Colors.white.withOpacity(0.3),
-          avatar: CircleAvatar(
-            backgroundColor: entry.value,
-            radius: 10,
+          child: DropdownButtonFormField<String>(
+            value: _selectedCategory.isEmpty ? null : _selectedCategory,
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              border: InputBorder.none,
+              filled: true,
+              fillColor: Colors.white.withOpacity(0.1),
+            ),
+            items: _categories.map((category) => DropdownMenuItem(
+              value: category,
+              child: Text(category),
+            )).toList(),
+            onChanged: (value) => setState(() => _selectedCategory = value ?? ''),
+            validator: (value) => value?.isEmpty ?? true ? 'Please select a category' : null,
+            icon: Icon(Icons.arrow_drop_down, color: Theme.of(context).primaryColor),
           ),
         ),
-      );
-    }).toList();
+      ],
+    );
   }
 
   @override
@@ -396,8 +342,8 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                                   controller: _nameController,
                                   label: 'Product Name',
                                   icon: Icons.shopping_bag,
-                                  validator: (value) =>
-                                      value?.isEmpty ?? true ? 'Please enter a product name' : null,
+                                  validator: (value) => value?.isEmpty ?? true 
+                                      ? 'Please enter a product name' : null,
                                 ),
                                 const SizedBox(height: 16),
                                 _buildInputField(
@@ -405,8 +351,8 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                                   label: 'Description',
                                   icon: Icons.description,
                                   maxLines: 3,
-                                  validator: (value) =>
-                                      value?.isEmpty ?? true ? 'Please enter a description' : null,
+                                  validator: (value) => value?.isEmpty ?? true 
+                                      ? 'Please enter a description' : null,
                                 ),
                                 const SizedBox(height: 16),
                                 Row(
@@ -418,12 +364,8 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                                         icon: Icons.attach_money,
                                         keyboardType: TextInputType.number,
                                         validator: (value) {
-                                          if (value?.isEmpty ?? true) {
-                                            return 'Please enter a price';
-                                          }
-                                          if (double.tryParse(value!) == null) {
-                                            return 'Please enter a valid number';
-                                          }
+                                          if (value?.isEmpty ?? true) return 'Please enter a price';
+                                          if (double.tryParse(value!) == null) return 'Invalid number';
                                           return null;
                                         },
                                       ),
@@ -434,8 +376,8 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                                         controller: _brandController,
                                         label: 'Brand',
                                         icon: Icons.branding_watermark,
-                                        validator: (value) =>
-                                            value?.isEmpty ?? true ? 'Please enter a brand' : null,
+                                        validator: (value) => value?.isEmpty ?? true 
+                                            ? 'Please enter a brand' : null,
                                       ),
                                     ),
                                   ],
@@ -455,8 +397,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Theme.of(context).primaryColor,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
+                                borderRadius: BorderRadius.circular(15)),
                               elevation: 8,
                               shadowColor: Theme.of(context).primaryColor.withOpacity(0.5),
                             ),
@@ -481,24 +422,18 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
     );
   }
 
-  // Modified _submitProduct pour inclure l'upload d'image
   Future<void> _submitProduct() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedImage == null) {
+    if (_imageFile == null) {
       _showErrorSnackBar('Please select an image');
       return;
     }
-    
+
     setState(() => _isLoading = true);
 
     try {
-      // Upload image first
       final imageUrl = await _uploadImage();
-      if (imageUrl == null) {
-        _showErrorSnackBar('Failed to upload image');
-        setState(() => _isLoading = false);
-        return;
-      }
+      if (imageUrl == null) return;
 
       final newProduct = Product(
         id: '',
@@ -529,12 +464,11 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
     _descriptionController.clear();
     _priceController.clear();
     _brandController.clear();
-    _imageUrlController.clear();
     setState(() {
       _selectedCategory = '';
       _selectedSizes.clear();
       _selectedColors.clear();
-      _selectedImage = null;
+      _imageFile = null;
     });
   }
 
@@ -544,11 +478,7 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
         content: Text(message),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        elevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -559,11 +489,6 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
         content: Text(message),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        elevation: 6,
       ),
     );
   }
@@ -571,139 +496,33 @@ class _AddProductPageState extends State<AddProductPage> with SingleTickerProvid
   Future<void> _loadCategories() async {
     try {
       final categories = await _firebaseService.getCategories();
-      setState(() {
-        _categories = categories;
-      });
+      setState(() => _categories = categories);
     } catch (e) {
       _showErrorSnackBar('Failed to load categories: $e');
     }
   }
 
-  Widget _buildCategorySelector() {
-    return _buildGlassContainer(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Category',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                ),
-              ),
-              child: DropdownButtonFormField<String>(
-                value: _selectedCategory.isEmpty ? null : _selectedCategory,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  border: InputBorder.none,
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.1),
-                ),
-                dropdownColor: Colors.white.withOpacity(0.9),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Text(
-                      category,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value ?? '';
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select a category';
-                  }
-                  return null;
-                },
-                icon: Icon(
-                  Icons.arrow_drop_down,
-                  color: Theme.of(context).primaryColor,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnimatedSection({
-    required String title,
-    required Widget child,
-    double delay = 0.0,
-  }) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOut,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(0, 20 * (1 - value)),
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
-        );
-      },
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).primaryColor,
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPulseButton({
-    required VoidCallback onPressed,
-    required Widget child,
-  }) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 1.0, end: 1.05),
-      duration: const Duration(milliseconds: 1000),
-      curve: Curves.easeInOut,
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: value,
-          child: child,
-        );
-      },
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          elevation: 8,
-          shadowColor: Theme.of(context).primaryColor.withOpacity(0.5),
-        ),
-        child: child,
-      ),
-    );
+  List<Widget> _buildColorChips() {
+    return {
+      'Black': Colors.black,
+      'White': Colors.white,
+      'Red': Colors.red,
+      'Blue': Colors.blue,
+      'Green': Colors.green,
+      'Yellow': Colors.yellow,
+    }.entries.map((entry) {
+      final isSelected = _selectedColors.contains(entry.key);
+      return FilterChip(
+        label: Text(entry.key),
+        selected: isSelected,
+        onSelected: (selected) => setState(() {
+          selected ? _selectedColors.add(entry.key) : _selectedColors.remove(entry.key);
+        }),
+        selectedColor: entry.value.withOpacity(0.2),
+        checkmarkColor: entry.key == 'White' ? Colors.black : Colors.white,
+        backgroundColor: Colors.white.withOpacity(0.3),
+        avatar: CircleAvatar(backgroundColor: entry.value, radius: 10),
+      );
+    }).toList();
   }
 }
