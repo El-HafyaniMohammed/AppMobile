@@ -468,8 +468,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
           .add(order);
 
       // Vider le panier
-      FirebaseService _firebaseService = FirebaseService();
-      await _firebaseService.clearCart(widget.userId);
+      FirebaseService firebaseService = FirebaseService();
+      await firebaseService.clearCart(widget.userId);
 
       // Afficher brièvement le message de succès
       if (!mounted) return;
@@ -511,13 +511,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
+                child: const Text('OK'),
               ),
             ],
           ),
