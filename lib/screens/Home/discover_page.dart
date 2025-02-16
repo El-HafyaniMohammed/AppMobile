@@ -1123,7 +1123,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                     final product =
                         products.firstWhere((p) => p.id == productId);
 
-                    if (product.sizes.isNotEmpty || product.colors.isNotEmpty) {
+                    if (product.specifications.isNotEmpty || product.colors.isNotEmpty) {
                       await _showEnhancedSizeColorDialog(
                           context, product, userId);
                     } else {
@@ -1229,7 +1229,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (product.sizes.isNotEmpty) ...[
+                      if (product.specifications.isNotEmpty) ...[
                         const Text(
                           'Taille',
                           style: TextStyle(
@@ -1241,7 +1241,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: product.sizes.map((size) {
+                          children: product.specifications.map((size) {
                             final isSelected = selectedSize == size;
                             return AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
@@ -1357,7 +1357,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                     duration: const Duration(milliseconds: 200),
                     child: ElevatedButton(
                       onPressed:
-                          ((product.sizes.isNotEmpty && selectedSize == null) ||
+                          ((product.specifications.isNotEmpty && selectedSize == null) ||
                                   (product.colors.isNotEmpty &&
                                       selectedColor == null))
                               ? null

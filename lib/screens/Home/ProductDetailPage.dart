@@ -44,8 +44,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
     ));
 
     _checkFavoriteStatus();
-    if (widget.product.sizes.isNotEmpty) {
-      _selectedSize = widget.product.sizes.first;
+    if (widget.product.specifications.isNotEmpty) {
+      _selectedSize = widget.product.specifications.first;
     }
     if (widget.product.colors.isNotEmpty) {
       _selectedColor = widget.product.colors.first;
@@ -431,7 +431,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
                             ],
                           ),
 
-                          if (widget.product.sizes.isNotEmpty) ...[
+                          if (widget.product.specifications.isNotEmpty) ...[
                             const SizedBox(height: 24),
                             const Text(
                               'Select Size',
@@ -444,7 +444,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
                             SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: Row(
-                                children: widget.product.sizes
+                                children: widget.product.specifications
                                     .map((size) => Padding(
                                           padding: const EdgeInsets.only(right: 12),
                                           child: _buildSizeOption(size),

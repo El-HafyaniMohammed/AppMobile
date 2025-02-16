@@ -12,7 +12,7 @@ class Product {
   final String description;
   final double deliveryTime;
   final List<String> colors;
-  final List<String> sizes;
+  final List<String> specifications;
   final Map<String, double> sizePrices;
   final Map<String, double> colorPrices;
 
@@ -30,7 +30,7 @@ class Product {
     required this.description,
     required this.deliveryTime,
     this.colors = const [],
-    this.sizes = const [],
+    this.specifications = const [],
     this.sizePrices = const {},
     this.colorPrices = const {},
   });
@@ -50,7 +50,7 @@ class Product {
       description: map['description'] as String,
       deliveryTime: (map['deliveryTime'] as num).toDouble(),
       colors: List<String>.from(map['colors'] ?? []),
-      sizes: List<String>.from(map['sizes'] ?? []),
+      specifications: List<String>.from(map['specifications'] ?? []),
       sizePrices: Map<String, double>.from(map['sizePrices'] ?? {}),
       colorPrices: Map<String, double>.from(map['colorPrices'] ?? {}),
     );
@@ -71,7 +71,7 @@ class Product {
       'description': description,
       'deliveryTime': deliveryTime,
       'colors': colors,
-      'sizes': sizes,
+      'specifications': specifications,
       'sizePrices': sizePrices,
       'colorPrices': colorPrices,
     };
@@ -92,7 +92,7 @@ class Product {
       description: json['description'] as String,
       deliveryTime: (json['deliveryTime'] as num).toDouble(),
       colors: List<String>.from(json['colors'] ?? []),
-      sizes: List<String>.from(json['sizes'] ?? []),
+      specifications: List<String>.from(json['specifications'] ?? []),
       sizePrices: Map<String, double>.from(json['sizePrices'] ?? {}),
       colorPrices: Map<String, double>.from(json['colorPrices'] ?? {}),
     );
@@ -113,7 +113,7 @@ class Product {
       'description': description,
       'deliveryTime': deliveryTime,
       'colors': colors,
-      'sizes': sizes,
+      'specifications': specifications,
       'sizePrices': sizePrices,
       'colorPrices': colorPrices,
     };
@@ -140,7 +140,7 @@ class Product {
       description: description,
       deliveryTime: deliveryTime,
       colors: colors,
-      sizes: sizes,
+      specifications: specifications,
       sizePrices: sizePrices,
       colorPrices: colorPrices,
     );

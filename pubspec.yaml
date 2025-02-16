@@ -38,6 +38,8 @@ dependencies:
   device_info_plus: ^11.2.2
   timeago: ^3.7.0
   fl_chart: ^0.70.2
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

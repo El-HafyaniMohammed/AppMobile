@@ -382,10 +382,10 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
                                         ],
                                       ),
                                       const SizedBox(height: 8),
-                                      if(item.product.sizes.isNotEmpty) 
+                                      if(item.product.specifications.isNotEmpty) 
                                         DropdownButton<String>(
                                           value: item.selectedSize,
-                                          items: item.product.sizes.map((size) => 
+                                          items: item.product.specifications.map((size) => 
                                             DropdownMenuItem(
                                               value: size,
                                               child: Text(size)

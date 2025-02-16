@@ -19,7 +19,7 @@ class CartItem {
       "productId": product.id,
       'quantity': quantity,
       'selectedColor': selectedColor, 
-      'selectedSize': selectedSize // Ajouter la taille sélectionnée
+      'specifications': selectedSize // Ajouter la taille sélectionnée
     };
   }
 
@@ -29,7 +29,7 @@ class CartItem {
       product: product,
       quantity: data['quantity'] as int? ?? 1,
       selectedColor: data['selectedColor'] as String? ?? '', 
-      selectedSize: data['selectedSize'] as String? ?? '' // Charger la taille sélectionnée
+      selectedSize: data['specifications'] as String? ?? '' // Charger la taille sélectionnée
     );
   }
 

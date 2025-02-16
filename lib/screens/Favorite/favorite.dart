@@ -708,7 +708,7 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
   Widget _buildAddToCartButton(Product product) {
     return ElevatedButton(
       onPressed: () async {
-        if (product.sizes.isNotEmpty || product.colors.isNotEmpty) {
+        if (product.specifications.isNotEmpty || product.colors.isNotEmpty) {
           await _showSizeAndColorDialog(product);
         } else {
           final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -764,7 +764,7 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (product.sizes.isNotEmpty) ...[
+                  if (product.specifications.isNotEmpty) ...[
                     const Text('Select Size'),
                     DropdownButton<String>(
                       value: selectedSize,
@@ -774,7 +774,7 @@ class _FavoritesScreenState extends State<FavoriteScreen> {
                               value; // Mettre à jour la taille sélectionnée
                         });
                       },
-                      items: product.sizes.map((size) {
+                      items: product.specifications.map((size) {
                         return DropdownMenuItem(
                           value: size,
                           child: Text(size),
