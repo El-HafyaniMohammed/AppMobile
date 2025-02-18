@@ -1,6 +1,6 @@
 # APPLICATION MOBILE E-COMMERCE 
 
-A new Flutter project.
+😉 This application is not completed yet. Currently, I am working on it.
 
 ## Getting Started
 
