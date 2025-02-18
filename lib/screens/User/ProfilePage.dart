@@ -1,4 +1,5 @@
-// ignore_for_file: avoid_print, unused_field
+
+// ignore_for_file: avoid_print, unused_field, depend_on_referenced_packages, use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';

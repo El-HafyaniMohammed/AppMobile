@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_types_as_parameter_names
+// ignore_for_file: avoid_types_as_parameter_names, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

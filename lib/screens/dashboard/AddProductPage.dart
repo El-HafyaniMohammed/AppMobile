@@ -1,4 +1,4 @@
-// ignore_for_file: unused_import, unnecessary_import, depend_on_referenced_packages, unused_field
+// ignore_for_file: unused_import, unnecessary_import, depend_on_referenced_packages, unused_field, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

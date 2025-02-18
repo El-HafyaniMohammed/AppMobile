@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_null_comparison, unused_local_variable
+// ignore_for_file: unnecessary_null_comparison, unused_local_variable, avoid_types_as_parameter_names, use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';

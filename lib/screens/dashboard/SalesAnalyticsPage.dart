@@ -1,4 +1,4 @@
-// ignore_for_file: unused_field
+// ignore_for_file: unused_field, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import '../../services/firebase_service.dart';

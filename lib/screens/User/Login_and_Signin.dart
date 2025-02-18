@@ -1,4 +1,4 @@
-// ignore_for_file: unused_field, non_constant_identifier_names
+// ignore_for_file: unused_field, non_constant_identifier_names, use_build_context_synchronously, deprecated_member_use
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
