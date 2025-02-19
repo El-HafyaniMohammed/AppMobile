@@ -11,6 +11,7 @@ import 'ProductDetailPage.dart';
 import '../dashboard/AddProductPage.dart';
 import '../dashboard/MyProductsPage.dart';
 import '../dashboard/SalesAnalyticsPage.dart';
+import '../../l10n/app_localizations.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -37,6 +38,9 @@ class _DiscoverPageState extends State<DiscoverPage>
   late AnimationController _menuAnimationController;
   late AnimationController _searchAnimationController;
   late Animation<double> _searchWidthAnimation;
+
+  final TranslationService _translationService = TranslationService();
+
   @override
   void initState() {
     super.initState();
@@ -76,8 +80,15 @@ class _DiscoverPageState extends State<DiscoverPage>
     });
     _loadCategories();
     _loadProducts();
+    _initLanguage();
   }
-
+  Future<void> _initLanguage() async {
+    await _translationService.init();
+    setState(() {});  // Refresh UI after language loaded
+  }
+  String t(String key) {
+    return _translationService.getText(key);
+  }
   @override
   void dispose() {
     _fadeController.dispose();
@@ -187,9 +198,9 @@ class _DiscoverPageState extends State<DiscoverPage>
                       ? const SliverFillRemaining(
                           child: Center(child: CircularProgressIndicator()))
                       : filteredProducts.isEmpty
-                          ? const SliverFillRemaining(
+                          ?  SliverFillRemaining(
                               child:
-                                  Center(child: Text('Aucun produit trouvé')))
+                                  Center(child: Text(t('noProductsFound'))))
                           : SliverPadding(
                               padding: const EdgeInsets.all(16),
                               sliver: _buildProductsGrid(filteredProducts),
@@ -239,28 +250,28 @@ class _DiscoverPageState extends State<DiscoverPage>
                 // Options de gestion des produits
                 _buildSellerMenuItem(
                   icon: Icons.add_box_outlined,
-                  label: 'Add New Product',
+                  label: t('addNewProduct'),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => AddProductPage()),
                   ),
                 ),
                 _buildSellerMenuItem(
                   icon: Icons.inventory_2_outlined,
-                  label: 'My Products',
+                  label: t('myProducts'),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => MyProductsPage()),
                   ),
                 ),
                 _buildSellerMenuItem(
                   icon: Icons.analytics_outlined,
-                  label: 'Sales Analytics',
+                  label: t('salesAnalytics'),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (context) => SalesAnalyticsPage()),
                   ),
                 ),
                 _buildSellerMenuItem(
                   icon: Icons.shopping_bag_outlined,
-                  label: 'Orders Management',
+                  label: t('ordersManagement'),
                   badge: '3',
                   onTap: () =>
                       Navigator.pushNamed(context, '/orders-management'),
@@ -271,12 +282,12 @@ class _DiscoverPageState extends State<DiscoverPage>
                 // Paramètres boutique
                 _buildSellerMenuItem(
                   icon: Icons.storefront_outlined,
-                  label: 'Shop Settings',
+                  label: t('shopSettings'),
                   onTap: () => Navigator.pushNamed(context, '/shop-settings'),
                 ),
                 _buildSellerMenuItem(
                   icon: Icons.account_balance_wallet_outlined,
-                  label: 'Payment Settings',
+                  label: t('paymentSettings'),
                   onTap: () =>
                       Navigator.pushNamed(context, '/payment-settings'),
                 ),
@@ -304,8 +315,8 @@ class _DiscoverPageState extends State<DiscoverPage>
         children: [
           Icon(Icons.store, color: Colors.green[700], size: 24),
           const SizedBox(width: 12),
-          const Text(
-            'Seller Dashboard',
+           Text(
+            t('sellerDashboard'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -408,7 +419,7 @@ class _DiscoverPageState extends State<DiscoverPage>
               ),
               const SizedBox(width: 8),
               Text(
-                'Switch to Buyer Mode',
+                t('switchToBuyerMode'),
                 style: TextStyle(
                   color: Colors.grey[700],
                   fontSize: 14,
@@ -450,7 +461,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                     Row(
                       children: [
                         Text(
-                          'Discover',
+                          t('discover'),
                           style: config.AppStyles.headerText.copyWith(
                             fontSize: 24,
                             fontWeight: FontWeight.w900,
@@ -467,8 +478,8 @@ class _DiscoverPageState extends State<DiscoverPage>
                             color: Colors.green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text(
-                            'NEW',
+                          child: Text(
+                            t('new'),
                             style: TextStyle(
                               color: Colors.green,
                               fontSize: 12,
@@ -480,7 +491,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Explore our latest collection',
+                      t('exploreProducts'),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 14,
@@ -494,7 +505,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                   children: [
                     _buildSearchButton(),
                     const SizedBox(width: 12),
-                    _buildEnhancedNotificationButton(),
+                    _buildLanguageSwitcherButton(),
                     const SizedBox(width: 12),
                     _buildEnhancedProfileButton(),
                   ],
@@ -542,14 +553,11 @@ class _DiscoverPageState extends State<DiscoverPage>
     );
   }
 
-  Widget _buildEnhancedNotificationButton() {
+  Widget _buildLanguageSwitcherButton() {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const NotificationPage()),
-        ),
+        onTap: () => _showLanguageSelectionDialog(),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(10),
@@ -557,37 +565,52 @@ class _DiscoverPageState extends State<DiscoverPage>
             color: Colors.grey[100],
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(
-                Icons.notifications_none_rounded,
-                color: Colors.grey[700],
-                size: 20,
-              ),
-              Positioned(
-                right: -2,
-                top: -2,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 2,
-                    ),
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 8,
-                    minHeight: 8,
-                  ),
-                ),
-              ),
-            ],
+          child: Icon(
+            Icons.language,
+            color: Colors.grey[700],
+            size: 20,
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showLanguageSelectionDialog() async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(t('selectLanguage')),
+          content: Container(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _translationService.languages.length,
+              itemBuilder: (context, index) {
+                final language = _translationService.languages[index];
+                final isSelected = _translationService.currentLanguage == language.code;
+                
+                return ListTile(
+                  title: Text(language.localName),
+                  subtitle: Text(language.name),
+                  trailing: isSelected ? const Icon(Icons.check, color: Colors.green) : null,
+                  onTap: () async {
+                    await _translationService.changeLanguage(language.code);
+                    Navigator.of(context).pop();
+                    setState(() {});  // Refresh UI with new language
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text(t('cancel')),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -646,7 +669,7 @@ class _DiscoverPageState extends State<DiscoverPage>
               child: TextField(
                 controller: searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search products...',
+                  hintText: t('search_products'),
                   hintStyle: TextStyle(
                     color: Colors.grey[500],
                     fontSize: 14,
@@ -771,8 +794,8 @@ class _DiscoverPageState extends State<DiscoverPage>
                         ),
                       ),
                       const SizedBox(width: 6),
-                      const Text(
-                        'Limited time offer',
+                      Text(
+                        t('limitedTimeOffer'),
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 13,
@@ -792,11 +815,11 @@ class _DiscoverPageState extends State<DiscoverPage>
                       colors: [Colors.white, Color(0xFFE8F5E9)],
                     ).createShader(bounds);
                   },
-                  child: const Text(
-                    'Up to 50% OFF',
+                  child: Text(
+                    t('upTo50Off'),
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 28,
+                      fontSize: 20,
                       fontWeight: FontWeight.w800,
                       height: 1,
                     ),
@@ -805,7 +828,7 @@ class _DiscoverPageState extends State<DiscoverPage>
 
                 const SizedBox(height: 4),
                 Text(
-                  'on selected items',
+                  t('onSelectedItems'),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 15,
@@ -831,7 +854,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '4.8 (256 reviews)',
+                      t('reviews'),
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 12,
@@ -857,7 +880,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Shop Now',
+                            t('shopNow'),
                             style: TextStyle(
                               color: const Color(0xFF4CAF50),
                               fontSize: 15,
@@ -929,11 +952,11 @@ class _DiscoverPageState extends State<DiscoverPage>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Categories', style: config.AppStyles.titleText),
+            Text(t('categories'), style: config.AppStyles.titleText),
             TextButton(
               onPressed: () {},
               child: Text(
-                'See all',
+                t('seeAll'),
                 style: TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w600,
