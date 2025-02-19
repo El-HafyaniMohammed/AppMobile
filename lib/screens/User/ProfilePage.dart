@@ -1261,26 +1261,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
             ),
           ),
-          _buildPreferenceGroup([
-            _buildPreferenceItem(
-              icon: Icons.notifications_outlined,
-              title: 'Notifications',
-              isSwitch: true,
-              onTap: () {},
-            ),
-            _buildPreferenceItem(
-              icon: Icons.language_outlined,
-              title: 'Langue',
-              value: 'Français',
-              onTap: () {},
-            ),
-            _buildPreferenceItem(
-              icon: Icons.dark_mode_outlined,
-              title: 'Thème sombre',
-              isSwitch: true,
-              onTap: () {},
-            ),
-          ]),
           const SizedBox(height: 16),
           _buildPreferenceGroup([
             _buildPreferenceItem(
