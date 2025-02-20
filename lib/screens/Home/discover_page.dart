@@ -581,7 +581,7 @@ class _DiscoverPageState extends State<DiscoverPage>
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(t('selectLanguage')),
-          content: Container(
+          content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
               shrinkWrap: true,
