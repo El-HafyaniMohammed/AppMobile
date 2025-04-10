@@ -12,6 +12,7 @@ import '../dashboard/AddProductPage.dart';
 import '../dashboard/MyProductsPage.dart';
 import '../dashboard/SalesAnalyticsPage.dart';
 import '../../l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DiscoverPage extends StatefulWidget {
   const DiscoverPage({super.key});
@@ -29,6 +30,8 @@ class _DiscoverPageState extends State<DiscoverPage>
   final FirebaseService _firebaseService = FirebaseService();
   List<Product> products = [];
   List<String> categories = [];
+  String? userType; // متغير لتخزين نوع المستخدم
+
   // Animation controllers
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
@@ -44,7 +47,9 @@ class _DiscoverPageState extends State<DiscoverPage>
   @override
   void initState() {
     super.initState();
-    // Initialisation des animations pour le champ de recherche
+    _loadUserType(); // تحميل نوع المستخدم
+
+    // تهيئة الرسوم المتحركة للبحث
     _searchAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -57,12 +62,13 @@ class _DiscoverPageState extends State<DiscoverPage>
       ),
     );
 
-    // Initialisation des animations pour le menu utilisateur
+    // تهيئة الرسوم المتحركة للقائمة
     _menuAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    // Initialize fade animation controller
+
+    // تهيئة الرسوم المتحركة للتلاشي
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1400),
       vsync: this,
@@ -82,21 +88,34 @@ class _DiscoverPageState extends State<DiscoverPage>
     _loadProducts();
     _initLanguage();
   }
+
+  // تحميل نوع المستخدم من SharedPreferences
+  Future<void> _loadUserType() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userType = prefs.getString('userType') ?? 'buyer'; // افتراضي: مشتري
+    });
+  }
+
   Future<void> _initLanguage() async {
     await _translationService.init();
-    setState(() {});  // Refresh UI after language loaded
+    setState(() {}); // تحديث واجهة المستخدم بعد تحميل اللغة
   }
+
   String t(String key) {
     return _translationService.getText(key);
   }
+
   @override
   void dispose() {
     _fadeController.dispose();
+    _searchAnimationController.dispose();
+    _menuAnimationController.dispose();
     searchController.dispose();
     super.dispose();
   }
 
-  // Fonction pour charger les catégories
+  // تحميل الفئات
   Future<void> _loadCategories() async {
     setState(() {
       isLoading = true;
@@ -104,14 +123,10 @@ class _DiscoverPageState extends State<DiscoverPage>
     try {
       final fetchedCategories = await _firebaseService.getCategories();
       setState(() {
-        categories = [
-          'All',
-          ...fetchedCategories
-        ]; // Ajoute 'All' aux catégories
+        categories = ['All', ...fetchedCategories];
       });
     } catch (e) {
-      // ignore: avoid_print
-      print('Erreur lors du chargement des catégories: $e');
+      print('خطأ أثناء تحميل الفئات: $e');
     } finally {
       setState(() {
         isLoading = false;
@@ -119,7 +134,7 @@ class _DiscoverPageState extends State<DiscoverPage>
     }
   }
 
-  // Fonction pour charger les produits
+  // تحميل المنتجات
   Future<void> _loadProducts() async {
     setState(() {
       isLoading = true;
@@ -128,7 +143,6 @@ class _DiscoverPageState extends State<DiscoverPage>
       final fetchedProducts = await _firebaseService.getProducts();
       setState(() {
         products = fetchedProducts;
-        // Create animation keys for each product
         _productKeys.clear();
         for (var i = 0; i < products.length; i++) {
           _productKeys.add(GlobalKey());
@@ -136,7 +150,7 @@ class _DiscoverPageState extends State<DiscoverPage>
       });
       _fadeController.forward(from: 0.0);
     } catch (e) {
-      print('Erreur lors du chargement des produits: $e');
+      print('خطأ أثناء تحميل المنتجات: $e');
     } finally {
       setState(() {
         isLoading = false;
@@ -144,18 +158,16 @@ class _DiscoverPageState extends State<DiscoverPage>
     }
   }
 
-  // Fonction pour filtrer les produits en fonction de la catégorie et de la recherche
+  // تصفية المنتجات بناءً على الفئة والبحث
   List<Product> _filterProducts() {
     List<Product> filteredProducts = products;
 
-    // Filtrage par catégorie
     if (selectedCategory != 'All') {
-      filteredProducts = filteredProducts.where((product) {
-        return product.category == selectedCategory;
-      }).toList();
+      filteredProducts = filteredProducts
+          .where((product) => product.category == selectedCategory)
+          .toList();
     }
 
-    // Filtrage par recherche
     if (searchQuery.isNotEmpty) {
       filteredProducts = filteredProducts.where((product) {
         return product.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
@@ -198,9 +210,8 @@ class _DiscoverPageState extends State<DiscoverPage>
                       ? const SliverFillRemaining(
                           child: Center(child: CircularProgressIndicator()))
                       : filteredProducts.isEmpty
-                          ?  SliverFillRemaining(
-                              child:
-                                  Center(child: Text(t('noProductsFound'))))
+                          ? SliverFillRemaining(
+                              child: Center(child: Text(t('noProductsFound'))))
                           : SliverPadding(
                               padding: const EdgeInsets.all(16),
                               sliver: _buildProductsGrid(filteredProducts),
@@ -209,7 +220,8 @@ class _DiscoverPageState extends State<DiscoverPage>
               ),
             ),
           ),
-          if (_isMenuOpen) _buildUserMenu(),
+          // عرض القائمة فقط إذا كان المستخدم بائعًا
+          if (_isMenuOpen && userType == 'seller') _buildUserMenu(),
         ],
       ),
     );
@@ -242,44 +254,36 @@ class _DiscoverPageState extends State<DiscoverPage>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // En-tête du menu vendeur
                 _buildSellerMenuHeader(),
-
                 const Divider(height: 1),
-
-                // Options de gestion des produits
                 _buildSellerMenuItem(
                   icon: Icons.add_box_outlined,
                   label: t('addNewProduct'),
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => AddProductPage()),
+                    MaterialPageRoute(builder: (context) => const AddProductPage()),
                   ),
                 ),
                 _buildSellerMenuItem(
                   icon: Icons.inventory_2_outlined,
                   label: t('myProducts'),
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => MyProductsPage()),
+                    MaterialPageRoute(builder: (context) => const MyProductsPage()),
                   ),
                 ),
                 _buildSellerMenuItem(
                   icon: Icons.analytics_outlined,
                   label: t('salesAnalytics'),
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => SalesAnalyticsPage()),
+                    MaterialPageRoute(builder: (context) => const SalesAnalyticsPage()),
                   ),
                 ),
                 _buildSellerMenuItem(
                   icon: Icons.shopping_bag_outlined,
                   label: t('ordersManagement'),
                   badge: '3',
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/orders-management'),
+                  onTap: () => Navigator.pushNamed(context, '/orders-management'),
                 ),
-
                 const Divider(height: 1),
-
-                // Paramètres boutique
                 _buildSellerMenuItem(
                   icon: Icons.storefront_outlined,
                   label: t('shopSettings'),
@@ -288,13 +292,9 @@ class _DiscoverPageState extends State<DiscoverPage>
                 _buildSellerMenuItem(
                   icon: Icons.account_balance_wallet_outlined,
                   label: t('paymentSettings'),
-                  onTap: () =>
-                      Navigator.pushNamed(context, '/payment-settings'),
+                  onTap: () => Navigator.pushNamed(context, '/payment-settings'),
                 ),
-
                 const Divider(height: 1),
-
-                // Switch to buyer mode
                 _buildSwitchToBuyerMode(),
               ],
             ),
@@ -315,9 +315,9 @@ class _DiscoverPageState extends State<DiscoverPage>
         children: [
           Icon(Icons.store, color: Colors.green[700], size: 24),
           const SizedBox(width: 12),
-           Text(
+          Text(
             t('sellerDashboard'),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -339,10 +339,7 @@ class _DiscoverPageState extends State<DiscoverPage>
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
               Container(
@@ -357,18 +354,12 @@ class _DiscoverPageState extends State<DiscoverPage>
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
               if (badge != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(12),
@@ -383,11 +374,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                   ),
                 ),
               const SizedBox(width: 4),
-              Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
             ],
           ),
         ),
@@ -400,9 +387,8 @@ class _DiscoverPageState extends State<DiscoverPage>
       color: Colors.transparent,
       child: InkWell(
         onTap: () {
-          // Logique pour basculer en mode acheteur
           _toggleMenu();
-          // Ajouter ici la navigation ou le changement d'état
+          // يمكن إضافة منطق للتبديل إلى وضع المشتري هنا
         },
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -412,11 +398,7 @@ class _DiscoverPageState extends State<DiscoverPage>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.shopping_cart_outlined,
-                size: 20,
-                color: Colors.grey[700],
-              ),
+              Icon(Icons.shopping_cart_outlined, size: 20, color: Colors.grey[700]),
               const SizedBox(width: 8),
               Text(
                 t('switchToBuyerMode'),
@@ -433,7 +415,6 @@ class _DiscoverPageState extends State<DiscoverPage>
     );
   }
 
-  // Widget pour l'en-tête de la page
   Widget _buildHeader() {
     return Container(
       decoration: BoxDecoration(
@@ -454,7 +435,6 @@ class _DiscoverPageState extends State<DiscoverPage>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Left side - Title and subtitle
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -470,17 +450,14 @@ class _DiscoverPageState extends State<DiscoverPage>
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             t('new'),
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.green,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -492,22 +469,20 @@ class _DiscoverPageState extends State<DiscoverPage>
                     const SizedBox(height: 4),
                     Text(
                       t('exploreProducts'),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],
                 ),
-
-                // Right side - Actions
                 Row(
                   children: [
                     _buildSearchButton(),
                     const SizedBox(width: 12),
                     _buildLanguageSwitcherButton(),
-                    const SizedBox(width: 12),
-                    _buildEnhancedProfileButton(),
+                    // إخفاء زر القائمة فقط إذا كان المستخدم مشتريًا
+                    if (userType == 'seller') ...[
+                      const SizedBox(width: 12),
+                      _buildEnhancedProfileButton(),
+                    ],
                   ],
                 ),
               ],
@@ -589,7 +564,7 @@ class _DiscoverPageState extends State<DiscoverPage>
               itemBuilder: (context, index) {
                 final language = _translationService.languages[index];
                 final isSelected = _translationService.currentLanguage == language.code;
-                
+
                 return ListTile(
                   title: Text(language.localName),
                   subtitle: Text(language.name),
@@ -597,7 +572,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                   onTap: () async {
                     await _translationService.changeLanguage(language.code);
                     Navigator.of(context).pop();
-                    setState(() {});  // Refresh UI with new language
+                    setState(() {});
                   },
                 );
               },
@@ -651,7 +626,7 @@ class _DiscoverPageState extends State<DiscoverPage>
   Widget _buildExpandedSearchBar() {
     return AnimatedBuilder(
       animation: _searchAnimationController,
-      builder: (context, child) {
+      builder: (context, Qchild) {
         return SizeTransition(
           sizeFactor: _searchAnimationController,
           child: FadeTransition(
@@ -661,31 +636,17 @@ class _DiscoverPageState extends State<DiscoverPage>
               decoration: BoxDecoration(
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.grey[300]!,
-                  width: 1,
-                ),
+                border: Border.all(color: Colors.grey[300]!, width: 1),
               ),
               child: TextField(
                 controller: searchController,
                 decoration: InputDecoration(
                   hintText: t('search_products'),
-                  hintStyle: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 14,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: Colors.grey[600],
-                    size: 20,
-                  ),
+                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
                   suffixIcon: searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: Icon(
-                            Icons.clear,
-                            color: Colors.grey[600],
-                            size: 20,
-                          ),
+                          icon: Icon(Icons.clear, color: Colors.grey[600], size: 20),
                           onPressed: () {
                             searchController.clear();
                             setState(() {
@@ -695,10 +656,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 onChanged: (value) {
                   setState(() {
@@ -716,20 +674,16 @@ class _DiscoverPageState extends State<DiscoverPage>
   void _toggleMenu() {
     setState(() {
       _isMenuOpen = !_isMenuOpen;
-      _isMenuOpen
-          ? _menuAnimationController.forward()
-          : _menuAnimationController.reverse();
+      _isMenuOpen ? _menuAnimationController.forward() : _menuAnimationController.reverse();
     });
   }
 
-  // Widget pour la bannière de vente
   Widget _buildSalesBanner() {
     return Container(
       height: 200,
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: Stack(
         children: [
-          // Main container with gradient
           Container(
             decoration: BoxDecoration(
               gradient: const LinearGradient(
@@ -747,8 +701,6 @@ class _DiscoverPageState extends State<DiscoverPage>
               ],
             ),
           ),
-
-          // Background pattern
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(20),
@@ -757,26 +709,17 @@ class _DiscoverPageState extends State<DiscoverPage>
               ),
             ),
           ),
-
-          // Content
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Timer badge
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(100),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1,
-                    ),
+                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -787,16 +730,12 @@ class _DiscoverPageState extends State<DiscoverPage>
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(100),
                         ),
-                        child: const Icon(
-                          Icons.timer_outlined,
-                          color: Color(0xFF4CAF50),
-                          size: 14,
-                        ),
+                        child: const Icon(Icons.timer_outlined, color: Color(0xFF4CAF50), size: 14),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         t('limitedTimeOffer'),
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -805,19 +744,14 @@ class _DiscoverPageState extends State<DiscoverPage>
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 6),
-
-                // Main text
                 ShaderMask(
                   shaderCallback: (Rect bounds) {
-                    return const LinearGradient(
-                      colors: [Colors.white, Color(0xFFE8F5E9)],
-                    ).createShader(bounds);
+                    return const LinearGradient(colors: [Colors.white, Color(0xFFE8F5E9)]).createShader(bounds);
                   },
                   child: Text(
                     t('upTo50Off'),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -825,48 +759,32 @@ class _DiscoverPageState extends State<DiscoverPage>
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 4),
                 Text(
                   t('onSelectedItems'),
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 15, fontWeight: FontWeight.w500),
                 ),
-
                 const Spacer(),
-
-                // Review section
                 Row(
                   children: [
-                    // Star rating
                     Row(
                       children: List.generate(
-                          5,
-                          (index) => Icon(
-                                Icons.star,
-                                color:
-                                    index < 4 ? Colors.amber : Colors.white24,
-                                size: 16,
-                              )),
+                        5,
+                        (index) => Icon(
+                          Icons.star,
+                          color: index < 4 ? Colors.amber : Colors.white24,
+                          size: 16,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       t('reviews'),
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 8),
-
-                // Action button
                 Row(
                   children: [
                     Container(
@@ -881,8 +799,8 @@ class _DiscoverPageState extends State<DiscoverPage>
                         children: [
                           Text(
                             t('shopNow'),
-                            style: TextStyle(
-                              color: const Color(0xFF4CAF50),
+                            style: const TextStyle(
+                              color: Color(0xFF4CAF50),
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
@@ -894,11 +812,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                               color: const Color(0xFF4CAF50).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(100),
                             ),
-                            child: const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: Color(0xFF4CAF50),
-                              size: 16,
-                            ),
+                            child: const Icon(Icons.arrow_forward_rounded, color: Color(0xFF4CAF50), size: 16),
                           ),
                         ],
                       ),
@@ -908,8 +822,6 @@ class _DiscoverPageState extends State<DiscoverPage>
               ],
             ),
           ),
-
-          // Decorative circles
           Positioned(
             right: -30,
             top: -30,
@@ -918,10 +830,7 @@ class _DiscoverPageState extends State<DiscoverPage>
               height: 120,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
-                  width: 2,
-                ),
+                border: Border.all(color: Colors.white.withOpacity(0.1), width: 2),
               ),
             ),
           ),
@@ -933,10 +842,7 @@ class _DiscoverPageState extends State<DiscoverPage>
               height: 160,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
-                  width: 2,
-                ),
+                border: Border.all(color: Colors.white.withOpacity(0.1), width: 2),
               ),
             ),
           ),
@@ -945,7 +851,6 @@ class _DiscoverPageState extends State<DiscoverPage>
     );
   }
 
-  // Widget pour la section des catégories
   Widget _buildCategoriesSection() {
     return Column(
       children: [
@@ -957,10 +862,7 @@ class _DiscoverPageState extends State<DiscoverPage>
               onPressed: () {},
               child: Text(
                 t('seeAll'),
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -983,18 +885,10 @@ class _DiscoverPageState extends State<DiscoverPage>
                     scale: 1.0 + (0.05 * value),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Color.lerp(
-                          Colors.transparent,
-                          AppColors.primary,
-                          value,
-                        ),
+                        color: Color.lerp(Colors.transparent, AppColors.primary, value),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Color.lerp(
-                            AppColors.primary.withOpacity(0.3),
-                            Colors.transparent,
-                            value,
-                          )!,
+                          color: Color.lerp(AppColors.primary.withOpacity(0.3), Colors.transparent, value)!,
                           width: 1.5,
                         ),
                       ),
@@ -1008,18 +902,11 @@ class _DiscoverPageState extends State<DiscoverPage>
                             });
                           },
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             child: Text(
                               categories[index],
                               style: TextStyle(
-                                color: Color.lerp(
-                                  AppColors.primary,
-                                  Colors.white,
-                                  value,
-                                ),
+                                color: Color.lerp(AppColors.primary, Colors.white, value),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1037,7 +924,6 @@ class _DiscoverPageState extends State<DiscoverPage>
     );
   }
 
-  // Widget pour la grille des produits
   Widget _buildProductsGrid(List<Product> productsToDisplay) {
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -1049,120 +935,71 @@ class _DiscoverPageState extends State<DiscoverPage>
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           final product = productsToDisplay[index];
-          // Add staggered animation delay based on index
           return AnimatedBuilder(
             animation: _fadeAnimation,
             builder: (context, child) {
               final delay = (index * 100).clamp(0, 500).toDouble();
               final slideAnimation = CurvedAnimation(
                 parent: _fadeAnimation,
-                curve: Interval(
-                  delay / 1000,
-                  (delay + 500) / 1000,
-                  curve: Curves.easeOutQuart,
-                ),
+                curve: Interval(delay / 1000, (delay + 500) / 1000, curve: Curves.easeOutQuart),
               );
 
               return Transform.translate(
-                offset: Offset(
-                  0,
-                  20 * (1 - slideAnimation.value),
-                ),
-                child: Opacity(
-                  opacity: slideAnimation.value,
-                  child: child,
-                ),
+                offset: Offset(0, 20 * (1 - slideAnimation.value)),
+                child: Opacity(opacity: slideAnimation.value, child: child),
               );
             },
             child: GestureDetector(
               onTap: () {
-                // Naviguer vers la page de description du produit
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductDetailPage(product: product),
-                  ),
+                  MaterialPageRoute(builder: (context) => ProductDetailPage(product: product)),
                 );
               },
               child: TweenAnimationBuilder<double>(
                 duration: const Duration(milliseconds: 200),
                 tween: Tween<double>(begin: 1, end: 1),
                 builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: child,
-                  );
+                  return Transform.scale(scale: value, child: child);
                 },
                 child: ProductCard(
                   product: product,
                   onFavoriteChanged: (productId, isFavorite) async {
                     final userId = FirebaseAuth.instance.currentUser?.uid;
                     if (userId == null) {
-                      _showAnimatedSnackBar(
-                        context,
-                        'Veuillez vous connecter pour ajouter aux favoris',
-                        isError: true,
-                      );
+                      _showAnimatedSnackBar(context, 'يرجى تسجيل الدخول لإضافة إلى المفضلة', isError: true);
                       return;
                     }
 
                     try {
                       if (isFavorite) {
-                        await FirebaseService()
-                            .addToFavorites(userId, productId);
-                        _showAnimatedSnackBar(
-                          context,
-                          'Produit ajouté aux favoris',
-                          isError: false,
-                        );
+                        await FirebaseService().addToFavorites(userId, productId);
+                        _showAnimatedSnackBar(context, 'تمت إضافة المنتج إلى المفضلة', isError: false);
                       } else {
-                        await FirebaseService()
-                            .removeFromFavorites(userId, productId);
-                        _showAnimatedSnackBar(
-                          context,
-                          'Produit retiré des favoris',
-                          isError: false,
-                        );
+                        await FirebaseService().removeFromFavorites(userId, productId);
+                        _showAnimatedSnackBar(context, 'تمت إزالة المنتج من المفضلة', isError: false);
                       }
                     } catch (e) {
-                      _showAnimatedSnackBar(
-                        context,
-                        'Erreur lors de la mise à jour des favoris: $e',
-                        isError: true,
-                      );
+                      _showAnimatedSnackBar(context, 'خطأ أثناء تحديث المفضلة: $e', isError: true);
                     }
                   },
                   onAddToCart: (productId) async {
                     final userId = FirebaseAuth.instance.currentUser?.uid;
                     if (userId == null) {
-                      _showAnimatedSnackBar(
-                        context,
-                        'Veuillez vous connecter pour ajouter des articles au panier',
-                        isError: true,
-                      );
+                      _showAnimatedSnackBar(context, 'يرجى تسجيل الدخول لإضافة العناصر إلى السلة', isError: true);
                       return;
                     }
 
-                    final product =
-                        products.firstWhere((p) => p.id == productId);
+                    final product = products.firstWhere((p) => p.id == productId);
 
                     if (product.specifications.isNotEmpty || product.colors.isNotEmpty) {
-                      await _showEnhancedSizeColorDialog(
-                          context, product, userId);
+                      await _showEnhancedSizeColorDialog(context, product, userId);
                     } else {
                       try {
                         await FirebaseService().addToCart(userId, productId);
-                        _showAnimatedSnackBar(
-                          context,
-                          '${product.name} ajouté au panier',
-                          isError: false,
-                        );
+                        _showAnimatedSnackBar(context, 'تمت إضافة ${product.name} إلى السلة', isError: false);
                       } catch (e) {
-                        _showAnimatedSnackBar(
-                          context,
-                          'Erreur lors de l\'ajout au panier: $e',
-                          isError: true,
-                        );
+                        _showAnimatedSnackBar(context, 'خطأ أثناء الإضافة إلى السلة: $e', isError: true);
                       }
                     }
                   },
@@ -1176,8 +1013,7 @@ class _DiscoverPageState extends State<DiscoverPage>
     );
   }
 
-  void _showAnimatedSnackBar(BuildContext context, String message,
-      {bool isError = false}) {
+  void _showAnimatedSnackBar(BuildContext context, String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: TweenAnimationBuilder<double>(
@@ -1190,12 +1026,7 @@ class _DiscoverPageState extends State<DiscoverPage>
                 offset: Offset(0, 20 * (1 - value)),
                 child: Row(
                   children: [
-                    Icon(
-                      isError
-                          ? Icons.error_outline
-                          : Icons.check_circle_outline,
-                      color: Colors.white,
-                    ),
+                    Icon(isError ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white),
                     const SizedBox(width: 8),
                     Expanded(child: Text(message)),
                   ],
@@ -1212,8 +1043,7 @@ class _DiscoverPageState extends State<DiscoverPage>
     );
   }
 
-  Future<void> _showEnhancedSizeColorDialog(
-      BuildContext context, Product product, String userId) async {
+  Future<void> _showEnhancedSizeColorDialog(BuildContext context, Product product, String userId) async {
     String? selectedSize;
     String? selectedColor;
 
@@ -1226,24 +1056,17 @@ class _DiscoverPageState extends State<DiscoverPage>
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeOutQuart,
               child: AlertDialog(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 title: Column(
                   children: [
                     Text(
                       product.name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Sélectionnez vos options',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
+                      'اختر خياراتك',
+                      style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                     ),
                   ],
                 ),
@@ -1254,11 +1077,8 @@ class _DiscoverPageState extends State<DiscoverPage>
                     children: [
                       if (product.specifications.isNotEmpty) ...[
                         const Text(
-                          'Taille',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
+                          'الحجم',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -1275,30 +1095,19 @@ class _DiscoverPageState extends State<DiscoverPage>
                                   });
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.grey.shade200,
+                                    color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade200,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: isSelected
-                                          ? Theme.of(context).primaryColor
-                                          : Colors.grey.shade300,
+                                      color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
                                     ),
                                   ),
                                   child: Text(
                                     size,
                                     style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
+                                      color: isSelected ? Colors.white : Colors.black87,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                     ),
                                   ),
                                 ),
@@ -1310,11 +1119,8 @@ class _DiscoverPageState extends State<DiscoverPage>
                       if (product.colors.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         const Text(
-                          'Couleur',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
+                          'اللون',
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -1331,30 +1137,19 @@ class _DiscoverPageState extends State<DiscoverPage>
                                   });
                                 },
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? Theme.of(context).primaryColor
-                                        : Colors.grey.shade200,
+                                    color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade200,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: isSelected
-                                          ? Theme.of(context).primaryColor
-                                          : Colors.grey.shade300,
+                                      color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300,
                                     ),
                                   ),
                                   child: Text(
                                     color,
                                     style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : Colors.black87,
-                                      fontWeight: isSelected
-                                          ? FontWeight.bold
-                                          : FontWeight.normal,
+                                      color: isSelected ? Colors.white : Colors.black87,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                     ),
                                   ),
                                 ),
@@ -1371,51 +1166,28 @@ class _DiscoverPageState extends State<DiscoverPage>
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    child: Text(
-                      'Annuler',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
+                    child: Text('إلغاء', style: TextStyle(color: Colors.grey.shade600)),
                   ),
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     child: ElevatedButton(
-                      onPressed:
-                          ((product.specifications.isNotEmpty && selectedSize == null) ||
-                                  (product.colors.isNotEmpty &&
-                                      selectedColor == null))
-                              ? null
-                              : () async {
-                                  try {
-                                    await FirebaseService().addToCart(
-                                      userId,
-                                      product.id,
-                                      size: selectedSize,
-                                      color: selectedColor,
-                                    );
-                                    Navigator.pop(context);
-                                    _showAnimatedSnackBar(
-                                      context,
-                                      '${product.name} ajouté au panier',
-                                      isError: false,
-                                    );
-                                  } catch (e) {
-                                    _showAnimatedSnackBar(
-                                      context,
-                                      'Erreur lors de l\'ajout au panier: $e',
-                                      isError: true,
-                                    );
-                                  }
-                                },
+                      onPressed: ((product.specifications.isNotEmpty && selectedSize == null) ||
+                              (product.colors.isNotEmpty && selectedColor == null))
+                          ? null
+                          : () async {
+                              try {
+                                await FirebaseService().addToCart(userId, product.id, size: selectedSize, color: selectedColor);
+                                Navigator.pop(context);
+                                _showAnimatedSnackBar(context, 'تمت إضافة ${product.name} إلى السلة', isError: false);
+                              } catch (e) {
+                                _showAnimatedSnackBar(context, 'خطأ أثناء الإضافة إلى السلة: $e', isError: true);
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       ),
-                      child: const Text('Ajouter au panier'),
+                      child: const Text('إضافة إلى السلة'),
                     ),
                   ),
                 ],
@@ -1426,19 +1198,10 @@ class _DiscoverPageState extends State<DiscoverPage>
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         return SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.3),
-            end: Offset.zero,
-          ).animate(
-            CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutQuart,
-            ),
+          position: Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+            CurvedAnimation(parent: animation, curve: Curves.easeOutQuart),
           ),
-          child: FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
+          child: FadeTransition(opacity: animation, child: child),
         );
       },
       transitionDuration: const Duration(milliseconds: 400),
@@ -1449,7 +1212,6 @@ class _DiscoverPageState extends State<DiscoverPage>
   }
 }
 
-// Custom painter for grid pattern (remains unchanged)
 class GridPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -1460,19 +1222,11 @@ class GridPatternPainter extends CustomPainter {
     const spacing = 15.0;
 
     for (double i = 0; i < size.width; i += spacing) {
-      canvas.drawLine(
-        Offset(i, 0),
-        Offset(i, size.height),
-        paint,
-      );
+      canvas.drawLine(Offset(i, 0), Offset(i, size.height), paint);
     }
 
     for (double i = 0; i < size.height; i += spacing) {
-      canvas.drawLine(
-        Offset(0, i),
-        Offset(size.width, i),
-        paint,
-      );
+      canvas.drawLine(Offset(0, i), Offset(size.width, i), paint);
     }
   }
 

@@ -9,6 +9,7 @@ import 'Favorite/favorite.dart';
 import 'User/Login_and_Signin.dart';
 import 'User/ProfilePage.dart';
 import '../models/user_model.dart';
+import 'chat_screen.dart'; // استيراد شاشة الدردشة
 
 class MainScreen extends StatefulWidget {
   final UserModel user;
@@ -25,12 +26,12 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   late final List<AnimationController> _waveControllers;
   late final List<AnimationController> _bubbleControllers;
   late final AnimationController _selectedAnimController;
-  
+
   // Couleurs personnalisées pour un thème vert
   final Color _lightGreen = const Color(0xFF8BC34A);
   final Color _mediumGreen = const Color(0xFF4CAF50);
   final Color _darkGreen = const Color(0xFF2E7D32);
-  
+
   final List<Color> _bubbleColors = [
     Colors.white.withOpacity(0.3),
     Colors.white.withOpacity(0.2),
@@ -100,6 +101,18 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         ],
       ),
       bottomNavigationBar: _buildPoolNavBar(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ChatScreen()),
+          );
+        },
+        child: Icon(Icons.chat, color: Colors.white),
+        backgroundColor: _mediumGreen, // لتتناسب مع الثيم الخاص بك (الأخضر)
+        tooltip: 'فتح الدردشة',
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat, // موقع الزر في الزاوية السفلية اليمنى
     );
   }
 
@@ -165,7 +178,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
         final startX = random.nextDouble() * MediaQuery.of(context).size.width;
         final endY = -50.0 - (random.nextDouble() * 50);
         final size = 8.0 + (random.nextDouble() * 8);
-        
+
         return Positioned(
           left: startX + (math.sin(_bubbleControllers[index].value * math.pi * 2) * 10),
           bottom: endY + (150 * _bubbleControllers[index].value),
@@ -191,7 +204,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
   Widget _buildSwimmingIcon(int index) {
     final isSelected = index == _selectedIndex;
-    
+
     return GestureDetector(
       onTap: () => _onItemTapped(index),
       child: AnimatedBuilder(
@@ -203,7 +216,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           double xOffset = isSelected
               ? math.cos(_selectedAnimController.value * math.pi) * 5
               : 0;
-          
+
           return Transform.translate(
             offset: Offset(xOffset, yOffset),
             child: Container(
@@ -275,24 +288,24 @@ class WavePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final path = Path();
     final y = size.height / 2;
-    
+
     path.moveTo(0, y);
-    
+
     for (var i = 0.0; i < size.width; i++) {
       path.lineTo(
         i,
         y + math.sin((i / 30) + (animation * math.pi * 2)) * 8,
       );
     }
-    
+
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
     path.close();
-    
+
     final paint = Paint()
       ..color = waveColor
       ..style = PaintingStyle.fill;
-    
+
     canvas.drawPath(path, paint);
   }
 

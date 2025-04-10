@@ -1,4 +1,3 @@
-
 // ignore_for_file: avoid_print, unused_field, depend_on_referenced_packages, use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
@@ -15,7 +14,6 @@ import 'package:device_info_plus/device_info_plus.dart';
 import '../../services/firebase_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
 
 File? _selectedImage;
 
@@ -603,6 +601,11 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Nouvelle fonction ajoutée pour naviguer vers la page de support
+  void _navigateToSupportPage() {
+    Navigator.of(context).pushNamed('/support_page');
+  }
+
   String _formatName(String rawName) {
     String cleanedName = rawName.replaceAll(RegExp(r'[0-9.]'), '');
     cleanedName = cleanedName.replaceAll(RegExp(r'[_-]'), ' ');
@@ -944,14 +947,7 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-          ),
-        ],
+        // Removed the boxShadow property
       ),
       child: Column(
         children: [
@@ -978,17 +974,26 @@ class _ProfilePageState extends State<ProfilePage> {
             color: Colors.orange,
             onTap: () => Navigator.of(context).pushNamed('/payment'),
           ),
+          _buildMenuDivider(),
+          _buildMenuItem(
+            icon: Icons.support_agent,
+            title: 'Support',
+            subtitle: 'Contacter notre équipe',
+            color: Colors.orange.shade700,
+            onTap: _navigateToSupportPage, // Utilisation de la nouvelle fonction
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMenuItem(
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required Color color,
-      required VoidCallback onTap}) {
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -1044,9 +1049,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 Text(
                   'Informations personnelles',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                 ),
                 IconButton(
                   icon: Icon(

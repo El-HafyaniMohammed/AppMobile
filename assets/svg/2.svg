@@ -1,0 +1,216 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <!-- Définitions pour les éléments réutilisables -->
+  <defs>
+    <!-- Gradient de fond animé -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8f5e9">
+        <animate attributeName="stop-color" values="#e8f5e9;#f1f8e9;#e8f5e9" dur="10s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="50%" style="stop-color:#dcedc8">
+        <animate attributeName="stop-color" values="#dcedc8;#e6ee9c;#dcedc8" dur="12s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" style="stop-color:#c8e6c9">
+        <animate attributeName="stop-color" values="#c8e6c9;#d4e157;#c8e6c9" dur="14s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+    
+    <!-- Gradient pour effet de lumière -->
+    <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#4caf50;stop-opacity:0"/>
+    </radialGradient>
+    
+    <!-- Icône de sac de shopping avec détails -->
+    <symbol id="shoppingBag" viewBox="0 0 60 70">
+      <path d="M10,20 h40 v40 h-40 z" stroke-width="3" fill="#ffffff" stroke="#2e7d32">
+        <animate attributeName="fill" values="#ffffff;#e8f5e9;#ffffff" dur="6s" repeatCount="indefinite"/>
+      </path>
+      <path d="M20,20 v-8 c0,-8 20,-8 20,0 v8" stroke-width="4" fill="none" stroke="#2e7d32" stroke-linecap="round">
+        <animate attributeName="stroke-dasharray" values="0 50;50 0;0 50" dur="4s" repeatCount="indefinite"/>
+      </path>
+      <circle cx="25" cy="32" r="4" fill="#4caf50" stroke-width="2" stroke="#2e7d32">
+        <animate attributeName="r" values="4;5;4" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="35" cy="32" r="4" fill="#4caf50" stroke-width="2" stroke="#2e7d32">
+        <animate attributeName="r" values="4;5;4" dur="2s" repeatCount="indefinite" begin="0.5s"/>
+      </circle>
+    </symbol>
+    
+    <!-- Icône de panier avec effet 3D -->
+    <symbol id="cartIcon" viewBox="0 0 50 50">
+      <circle cx="20" cy="40" r="5" stroke-width="2" fill="#4caf50" stroke="#2e7d32">
+        <animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" dur="3s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="40" cy="40" r="5" stroke-width="2" fill="#4caf50" stroke="#2e7d32">
+        <animateTransform attributeName="transform" type="translate" values="0 0;0 -2;0 0" dur="3s" repeatCount="indefinite" begin="0.3s"/>
+      </circle>
+      <path d="M5,10 h8 l5,25 h25 l5,-20 h-30" stroke-width="3" fill="#e8f5e9" stroke="#2e7d32" stroke-linejoin="round" stroke-linecap="round">
+        <animate attributeName="fill" values="#e8f5e9;#ffffff;#e8f5e9" dur="5s" repeatCount="indefinite"/>
+      </path>
+    </symbol>
+    
+    <!-- Forme d'étoile avec dégradé -->
+    <symbol id="star" viewBox="0 0 20 20">
+      <path d="M10,0 l2,7 h7 l-6,4 l2,7 l-5,-4 l-5,4 l2,-7 l-6,-4 h7 z" fill="#81c784">
+        <animate attributeName="fill" values="#81c784;#a5d6a7;#81c784" dur="7s" repeatCount="indefinite"/>
+      </path>
+    </symbol>
+    
+    <!-- Filtre pour ombre portée dynamique -->
+    <filter id="dropShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="5"/>
+      <feOffset dx="4" dy="4"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Filtre pour effet de lumière -->
+    <filter id="glowEffect">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Fond principal avec gradient animé -->
+  <rect width="800" height="400" fill="url(#bgGradient)"/>
+  
+  <!-- Motifs décoratifs avec effet de pulsation -->
+  <g opacity="0.15">
+    <circle cx="100" cy="100" r="220" fill="#2e7d32">
+      <animate attributeName="r" values="220;240;220" dur="8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.15;0.25;0.15" dur="8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="700" cy="350" r="170" fill="#2e7d32">
+      <animate attributeName="r" values="170;190;170" dur="10s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.15;0.25;0.15" dur="10s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+  
+  <!-- Conteneur principal avec effet d'entrée 3D -->
+  <g filter="url(#dropShadow)">
+    <rect x="150" y="80" width="500" height="240" rx="25" ry="25" fill="white" opacity="0">
+      <animate attributeName="opacity" values="0;1" dur="1.5s" begin="0.4s" fill="freeze"/>
+      <animate attributeName="width" values="0;500" dur="1.5s" begin="0.4s" fill="freeze"/>
+      <animate attributeName="x" values="400;150" dur="1.5s" begin="0.4s" fill="freeze"/>
+      <animate attributeName="y" values="100;80" dur="1.5s" begin="0.4s" fill="freeze"/>
+    </rect>
+  </g>
+  
+  <!-- Effet de lumière sur le conteneur -->
+  <circle cx="400" cy="200" r="250" fill="url(#glowGradient)" opacity="0">
+    <animate attributeName="opacity" values="0;0.4;0" dur="6s" begin="1s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="250;270;250" dur="6s" begin="1s" repeatCount="indefinite"/>
+  </circle>
+  
+  <!-- Logo avec mouvement et effet de lumière -->
+  <g transform="translate(400,120)" opacity="0" filter="url(#glowEffect)">
+    <animate attributeName="opacity" values="0;1" dur="0.8s" begin="1.4s" fill="freeze"/>
+    <animateTransform attributeName="transform" type="translate" values="400 140;400 120;400 140" dur="4s" begin="2s" repeatCount="indefinite"/>
+    <circle cx="0" cy="0" r="40" fill="#4caf50">
+      <animate attributeName="r" values="40;45;40" dur="3s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+    <use href="#shoppingBag" x="-30" y="-35" width="60" height="70" stroke="#ffffff" stroke-width="2"/>
+  </g>
+  
+  <!-- Texte de bienvenue avec animation et effet de zoom -->
+  <g filter="url(#glowEffect)">
+    <text x="400" y="190" font-family="Arial, sans-serif" font-size="36" font-weight="bold" text-anchor="middle" fill="#1b5e20" opacity="0">
+      Bienvenue sur
+      <animate attributeName="opacity" values="0;1" dur="1s" begin="1.7s" fill="freeze"/>
+      <animate attributeName="y" values="170;190" dur="1s" begin="1.7s" fill="freeze"/>
+      <animate attributeName="font-size" values="34;36;34" dur="5s" begin="2.7s" repeatCount="indefinite"/>
+    </text>
+    
+    <text x="400" y="240" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#2e7d32" opacity="0">
+      9 GAME
+      <animate attributeName="opacity" values="0;1" dur="1s" begin="2s" fill="freeze"/>
+      <animate attributeName="y" values="220;240" dur="1s" begin="2s" fill="freeze"/>
+      <animate attributeName="font-size" values="46;48;46" dur="6s" begin="3s" repeatCount="indefinite"/>
+    </text>
+  </g>
+  
+  <!-- Icônes animées avec effet de rebond -->
+  <g>
+    <!-- Icône à gauche -->
+    <g transform="translate(200, 290)" opacity="0" filter="url(#glowEffect)">
+      <animate attributeName="opacity" values="0;1" dur="0.8s" begin="2.5s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate" values="200 310;200 290;200 310" dur="4s" begin="3.3s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="30" fill="#4caf50">
+        <animate attributeName="r" values="30;34;30" dur="3.5s" repeatCount="indefinite"/>
+      </circle>
+      <use href="#cartIcon" x="-25" y="-25" width="50" height="50" stroke="#ffffff" fill="none"/>
+    </g>
+    
+    <!-- Icône à droite -->
+    <g transform="translate(600, 290)" opacity="0" filter="url(#glowEffect)">
+      <animate attributeName="opacity" values="0;1" dur="0.8s" begin="2.7s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate" values="600 310;600 290;600 310" dur="4s" begin="3.5s" repeatCount="indefinite"/>
+      <circle cx="0" cy="0" r="30" fill="#4caf50">
+        <animate attributeName="r" values="30;34;30" dur="3.5s" repeatCount="indefinite"/>
+      </circle>
+      <text x="0" y="8" font-family="Arial, sans-serif" font-size="28" font-weight="bold" text-anchor="middle" fill="#ffffff">$</text>
+    </g>
+  </g>
+  
+  <!-- Étoiles décoratives avec animation avancée -->
+  <g>
+    <g transform="translate(160, 70)" opacity="0" filter="url(#glowEffect)">
+      <animate attributeName="opacity" values="0;0.9" dur="0.8s" begin="3s" fill="freeze"/>
+      <use href="#star" width="24" height="24">
+        <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="8s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.9;0.6;0.9" dur="4s" repeatCount="indefinite"/>
+      </use>
+    </g>
+    <g transform="translate(640, 70)" opacity="0" filter="url(#glowEffect)">
+      <animate attributeName="opacity" values="0;0.9" dur="0.8s" begin="3.2s" fill="freeze"/>
+      <use href="#star" width="18" height="18">
+        <animateTransform attributeName="transform" type="rotate" from="0 9 9" to="-360 9 9" dur="10s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.9;0.6;0.9" dur="5s" repeatCount="indefinite"/>
+      </use>
+    </g>
+    <g transform="translate(130, 280)" opacity="0" filter="url(#glowEffect)">
+      <animate attributeName="opacity" values="0;0.9" dur="0.8s" begin="3.4s" fill="freeze"/>
+      <use href="#star" width="22" height="22">
+        <animateTransform attributeName="transform" type="rotate" from="0 11 11" to="360 11 11" dur="9s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.9;0.6;0.9" dur="4.5s" repeatCount="indefinite"/>
+      </use>
+    </g>
+    <g transform="translate(670, 280)" opacity="0" filter="url(#glowEffect)">
+      <animate attributeName="opacity" values="0;0.9" dur="0.8s" begin="3.6s" fill="freeze"/>
+      <use href="#star" width="20" height="20">
+        <animateTransform attributeName="transform" type="rotate" from="0 10 10" to="-360 10 10" dur="7s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.9;0.6;0.9" dur="5.5s" repeatCount="indefinite"/>
+      </use>
+    </g>
+  </g>
+  
+  <!-- Bordure inférieure avec effet de dessin et pulsation -->
+  <path d="M200,340 L600,340" stroke="#2e7d32" stroke-width="5" stroke-dasharray="400" stroke-dashoffset="400" fill="none">
+    <animate attributeName="stroke-dashoffset" values="400;0" dur="2s" begin="2.9s" fill="freeze"/>
+    <animate attributeName="stroke-width" values="5;6;5" dur="4s" begin="4.9s" repeatCount="indefinite"/>
+  </path>
+  
+  <!-- Particules flottantes décoratives -->
+  <g>
+    <circle cx="300" cy="50" r="5" fill="#81c784" opacity="0">
+      <animate attributeName="opacity" values="0;0.7;0" dur="5s" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="50;400;50" dur="5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="500" cy="100" r="4" fill="#a5d6a7" opacity="0">
+      <animate attributeName="opacity" values="0;0.6;0" dur="6s" repeatCount="indefinite" begin="1s"/>
+      <animate attributeName="cy" values="100;400;100" dur="6s" repeatCount="indefinite" begin="1s"/>
+    </circle>
+    <circle cx="350" cy="150" r="6" fill="#66bb6a" opacity="0">
+      <animate attributeName="opacity" values="0;0.8;0" dur="4s" repeatCount="indefinite" begin="2s"/>
+      <animate attributeName="cy" values="150;400;150" dur="4s" repeatCount="indefinite" begin="2s"/>
+    </circle>
+  </g>
+</svg>
